@@ -1,0 +1,70 @@
+<!-- Alpine.js Component -->
+<div>
+    <div x-data="{ activeTab: 'clients' }" class="flex flex-col items-center bg-gray-800 w-56 h-screen p-5">
+        <!-- Clients Button -->
+        <button @click="setActiveTab('clients')" :class="{ 'bg-gray-700': activeTab === 'clients' }" class="flex items-center px-4 py-2 text-white hover:bg-gray-700 rounded-md">
+            <i class="fas fa-users mr-3"></i> Clients
+        </button>
+        
+        <!-- Styles Button -->
+        <button @click="setActiveTab('styles')" :class="{ 'bg-gray-700': activeTab === 'styles' }" class="flex items-center px-4 py-2 mt-2 text-white hover:bg-gray-700 rounded-md">
+            <i class="fas fa-paint-brush mr-3"></i> Styles
+        </button>
+        
+        <!-- Invoices Button -->
+        <button @click="setActiveTab('invoices')" :class="{ 'bg-gray-700': activeTab === 'invoices' }" class="flex items-center px-4 py-2 mt-2 text-white hover:bg-gray-700 rounded-md">
+            <i class="fas fa-file-invoice-dollar mr-3"></i> Invoices
+        </button>
+    </div>
+    <div class="p-5">
+        <!-- Clients Section Heading -->
+        <div class="flex justify-between items-center mb-5">
+            <div>
+                <h1 class="text-2xl font-bold">Clients</h1>
+                <p>Add and edit your clients using the below menu:</p>
+            </div>
+            <button class="bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-4 rounded">
+                <i class="fas fa-plus-circle"></i> Add Client
+            </button>
+        </div>
+    
+        <!-- Clients Table -->
+        <div x-data="Alpine.store('clientStore')" x-init="$store.clientStore.fetchClients()" class="bg-white shadow-md rounded px-4 py-3 mb-5">
+            <table class="min-w-full leading-normal">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Company Name</th>
+                        <th>Address</th>
+                        <th>Email</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="client in $store.clientStore.clients" :key="client.id">
+                        <tr>
+                            <td x-text="client.id"></td>
+                            <td x-text="client.name"></td>
+                            <td x-text="client.company_name"></td>
+                            <td x-text="client.address"></td>
+                            <td x-text="client.email"></td>
+                            <td>
+                                <button class="bg-blue-600 hover:bg-blue-500 text-white font-boldpy-2 px-4 rounded">
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                                <button class="bg-red-600 hover:bg-red-500 text-white font-bold py-2px-4 rounded">
+                                    <i class="fas fa-trash-alt"></i> Delete
+                                </button>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+        <!-- Add Client Modal -->
+    </div>
+</div>
+
+
+

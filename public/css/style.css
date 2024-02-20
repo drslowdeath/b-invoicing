@@ -1,0 +1,304 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+#addClientModal {
+    display: none;
+    position: fixed;
+    z-index: 100;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.4);
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+}
+
+
+/* Adding this due to table in tab two of Alpine component misbehaving and causing the table to look tiny - take that! */
+.dataTable {
+    width: 100% !important;
+}
+
+/*Input Styling*/
+input::placeholder {
+    font-size: 0.875rem;
+    /* Set the size as you want */
+    line-height: 1.25rem;
+}
+
+/* Tooltip container */
+.tooltip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    margin-left: 0.5rem;
+}
+
+/* Tooltip text */
+.tooltip .tooltiptext {
+    visibility: hidden;
+    width: 150px;
+    background-color: rgb(37, 37, 37);
+    color: white;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px;
+    position: absolute;
+    z-index: 1;
+    bottom: 100%;
+    left: 50%;
+    margin-left: -75px;
+}
+
+/* Show the tooltip text when you mouse over the tooltip container */
+.tooltip:hover .tooltiptext {
+    visibility: visible;
+}
+
+/* Bottom-positioned tooltip specific to the invoice modal */
+.bottom-tooltip .tooltiptext {
+    top: 100%; /* Position below the icon */
+    bottom: auto; /* Override the default positioning */
+    left: 50%;
+    margin-left: -75px; /* Center the tooltip */
+}
+
+/* BUTTONS CSS */
+.transition-colors {
+    transition: background-color 0.3s ease;
+}
+
+/*Button Animation*/
+@keyframes clickAnimation {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(0.95);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+.submit-button {
+    transition: background-color 0.3s ease;
+}
+
+.submit-button:active {
+    animation: clickAnimation 0.2s ease;
+}
+
+
+
+/* Invoicing Tab - Invoicing Table */
+#invoiceTable {
+    border-collapse: collapse;
+    width: 100%;
+    background-color: transparent;
+    /* Remove any background color */
+}
+
+#invoiceTable thead {
+    display: none;
+    /* Hide table headers */
+}
+
+#invoiceTable td,
+#invoiceTable th {
+    padding: 8px;
+    /* Adjust padding as needed */
+    border: none;
+    /* Remove borders */
+    background-color: transparent;
+    /* Remove cell background color */
+    color: inherit;
+    /* Use the default text color */
+    text-align: left;
+    /* Align text to left */
+}
+
+#invoiceTable tr {
+    background-color: transparent;
+    /* Remove row background color */
+    border-bottom: none;
+    /* Remove bottom border from rows */
+}
+
+
+/* Specific DataTables styles for #invoiceTable */
+#invoiceTable_wrapper .dataTables_filter,
+#invoiceTable_wrapper .dataTables_info,
+#invoiceTable_wrapper .dataTables_paginate,
+#invoiceTable_wrapper .dataTables_length {
+    display: none;
+    /* Hide specific DataTables elements for #invoiceTable */
+}
+
+#clientsTable td {
+    padding: 0.5rem;
+}
+
+[x-cloak] { 
+    display: none !important;
+}
+    
+
+/* Tab3 Invoice Track - Left side Invoice List */
+.invoice-item {
+    padding: 10px;
+    border-bottom: 1px solid #ccc;
+    /* Thin bar separator */
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.invoice-item:last-child {
+    border-bottom: none;
+    /* Remove bottom border for the last item */
+}
+
+.invoice-item:hover {
+    background-color: #f0f0f0;
+    /* Hover effect */
+    border-radius: 1em;
+    transition: 0.3s ease;
+}
+
+.invoice-item {
+    position: relative;
+}
+
+
+/* Toggle button text styling */
+.status-text {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    font-size: 0.75rem;
+    margin-right: 0.9rem;
+    margin-bottom: 1rem;
+    /* Adjust size as needed */
+}
+
+.status-text.paid {
+    color: green;
+    /* Or any color you prefer for 'paid' status */
+}
+
+.status-text.unpaid {
+    color: red;
+    /* Or any color you prefer for 'unpaid' status */
+}
+
+
+/* Style the scrollbar track */
+.invoice-list::-webkit-scrollbar-track {
+    background-color: #f5f5f5; /* Light grey track */
+    border-radius: 10px;
+  }
+  
+  /* Style the scrollbar thumb */
+  .invoice-list::-webkit-scrollbar-thumb {
+    background-color: #a7a7a7; /* Dark grey thumb */
+    border-radius: 10px;
+  }
+  
+  /* Handle hover and active states */
+  .invoice-list::-webkit-scrollbar-thumb:hover {
+    background: #7e7e7e; /* Darker grey on hover */
+  }
+
+  /* Adjust the width here */
+  .invoice-list::-webkit-scrollbar {
+    width: 10px; 
+  }
+
+  .modal-overlay {
+    position: fixed; /* Fixed position to cover the entire viewport */
+    top: 0;
+    left: 0;
+    width: 100vw; /* Full viewport width */
+    height: 100vh; /* Full viewport height */
+    background-color: rgba(0, 0, 0, 0.4); /* Semi-transparent black background */
+    display: flex; /* Flexbox to center the modal */
+    justify-content: center;
+    align-items: center;
+    z-index: 50; /* High z-index to overlay on top of other content */
+}
+
+.modal-content {
+    /* Your modal content styles */
+    
+    z-index: 51; /* Higher than overlay to appear on top */
+}
+
+/* Style the scrollbar track */
+.preview-catch-thumb::-webkit-scrollbar-track {
+    background-color: #f5f5f5; /* Light grey track */
+    border-radius: 10px;
+  }
+  
+  /* Style the scrollbar thumb */
+  .preview-catch-thumb::-webkit-scrollbar-thumb {
+    background-color: #a7a7a7; /* Dark grey thumb */
+    border-radius: 10px;
+  }
+  
+  /* Handle hover and active states */
+  .preview-catch-thumb::-webkit-scrollbar-thumb:hover {
+    background: #7e7e7e; /* Darker grey on hover */
+  }
+
+  /* Adjust the width here */
+  .preview-catch-thumb::-webkit-scrollbar {
+    width: 10px; 
+  }
+  .selected-invoice {
+    background-color: #d7d7d7; /* Or any color you prefer */
+    border-radius: 0.375rem;
+  }
+
+
+
+
+  /* B Invoicing */
+
+  /* Sticky Table Header */
+  .sticky-th {
+    position: sticky;
+    top: -2px; /* Pull the header up */
+    background-color: white;
+    z-index: 10; /* Keep it above other content */
+    margin-top: -1px; /* Negative margin to pull the content up */
+    padding-top: 1px; /* Add padding to compensate for the negative margin */
+    }
+
+    /* For Webkit browsers */
+    ::-webkit-scrollbar {
+        width: 8px; /* Adjust the width of the scrollbar */
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #f1f1f1; /* The track (progress bar) of the scrollbar */
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #888; /* The draggable scrolling handle */
+        border-radius: 10px; /* Roundness of the scrollbar handle */
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #555; /* Hover effect */
+    }

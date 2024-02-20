@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>InvoKing</title>
+        <!-- Tailwind CDN -->
+        <script src="https://cdn.tailwindcss.com"></script>
+        <!-- Alpine Plugins -->
+        <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/focus@3.x.x/dist/cdn.min.js"></script>
+        <!-- JSPdf -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+        <!-- Main.js - Currently includes Alpine -->
+        <script type="module" src="/main.js" defer></script>
+        <!-- Font Awesome Icons -->
+        <script src="https://kit.fontawesome.com/fcfd063bdf.js" crossorigin="anonymous"></script>
+        <!-- Favicon -->
+        <link rel="icon" sizes="64x64" type="image/png" href="./public/images/vFavi.png">
+        <!-- Tailwind -->
+        <link href="/public/css/tailwind.css" rel="stylesheet">
+        <!-- CSS -->
+        <link rel="stylesheet" type="text/css" href="./public/css/style.css">
+    </head>
+
+    <body>
+        <!-- Alpine.js Component -->
+        <div x-cloak x-data="{
+                tabSelected: 'clients',
+                tabButtonClicked(tabName){
+                    this.tabSelected = tabName;
+                },
+                tabContentActive(tabName){
+                    return this.tabSelected === tabName;
+                }
+            }" class="flex h-screen">
+            <!-- Navigation Bar -->
+            <div class="flex flex-col items-center bg-gray-800 w-56 h-screen p-5 ">
+                <!-- Navigation Buttons -->
+                <button @click="tabButtonClicked('clients')" :class="{ 'bg-gray-700': tabContentActive('clients') }" class="flex items-center px-4 py-2 text-white hover:bg-gray-700 rounded-md">
+                    <i class="fas fa-users mr-3"></i> Clients
+                </button>
+                <button @click="tabButtonClicked('styles')" :class="{ 'bg-gray-700': tabContentActive('styles') }" class="flex items-center px-4 py-2 mt-2 text-white hover:bg-gray-700 rounded-md">
+                    <i class="fas fa-solid fa-box-open mr-3"></i> Styles
+                </button>
+                <button @click="tabButtonClicked('invoices')" :class="{ 'bg-gray-700': tabContentActive('invoices') }" class="flex items-center px-4 py-2 mt-2 text-white hover:bg-gray-700 rounded-md">
+                    <i class="fas fa-file-invoice-dollar mr-3"></i> Invoices
+                </button>
+            </div>
+            <!-- Tab Contents -->
+            <div class="p-5 w-full flex flex-col bg-gray-300 overflow-auto">
+                <!-- Clients Content -->
+                <div x-show="tabContentActive('clients')" x-data="{
+                    showAddClientModal: false,
+                    newClient: {name: '', company_name: '', address: '', email: ''},
+                    addClient() {
+                        // Define this method to handle form submission
+                    }
+                }" class="relative w-full">
+                    <!-- Clients Section Content Here -->
+                    <div class="flex justify-between">
+                        <div>
+                            <h1 class="text-2xl font-bold">Clients</h1>
+                            <p>Add and edit your clients using the below menu:</p>
+                        </div>
+                        <!-- Add Client Button - To Open Modal-->
+                        <div class="flex justify-end mt-5 mb-3">
+                            <button @click="showAddClientModal = true" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                                <i class="fas fa-plus-circle"></i> Add Client
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Clients Table -->
+                    <div class="overflow-x-auto rounded-lg shadow-md bg-white max-h-[80vh]"> 
+                        <table id="tableClients" class="min-w-full leading-normal">
+                            <thead>
+                                <tr class="bg-gray-100">
+                                    <th class="hidden w-1/12 sticky-th">ID</th>
+                                    <th class="border p-2 w-2/12 sticky-th">Name</th>
+                                    <th class="border p-2 w-2/12 sticky-th">Company Name</th>
+                                    <th class="border p-2 w-3/12 sticky-th">Address</th>
+                                    <th class="border p-2 w-1/12 sticky-th">Email</th>
+                                    <th class="border p-2 w-2/12 sticky-th">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-gray-700 border text-center">
+                                <!-- Dynamically generated -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Add Client Modal -->
+                    <div x-show="showAddClientModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 overflow-y-auto h-full w-full z-50" id="my-modal">
+                        <!-- Modal content -->
+                        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-gray-800 text-white">
+                            <div class="mt-3 text-center">
+                                <h3 class="text-2xl leading-6 font-medium text-white">Add Client</h3>
+                                <div class="mt-2 px-7 py-3">
+                                    <form id="addClientForm">
+                                        <input name="name" type="text" placeholder="Name" class="w-full mb-2 p-2 rounded bg-white text-gray-700" required></input>
+                                        <input name="company_name" type="text" placeholder="Company Name" class="w-full mb-2 p-2 rounded bg-white text-gray-700" required></input>
+                                        <input name="address" type="text" placeholder="Address" class="w-full mb-2 p-2 rounded bg-white text-gray-700" required></input>
+                                        <input name="email" type="email" placeholder="Email" class="w-full mb-2 p-2 rounded bg-white text-gray-700" required></input>
+                                        <button type="submit" id="submitAddClientForm" class="w-full bg-blue-500 text-white text-base font-medium p-2 rounded hover:bg-blue-600">Add Client</button>
+                                    </form>
+                                    <div class="items-center mt-2">
+                                        <button @click="showAddClientModal = false" class="px-4 py-2 bg-red-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors duration-200">
+                                            Close
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div
+                    x-show="tabContentActive('styles')"
+                >
+                    <!-- Styles Section Content Here -->
+                    <div x-data="{ showClientModal: false, showDropdown: false }" x-ref="stylesSection" x-show="tabContentActive('styles')" class="flex-col items-center">
+                        <div class="mb-2">
+                            <h1 class="text-2xl font-bold">Styles</h1>
+                            <p>Manage styles for each of your clients by using the button below:</p>
+                        </div>
+                        <!-- Trigger Button for Client Modal -->
+                        <div class="flex justify-between items-center">
+                            <button @click="showClientModal = true" class="open-modal-button flex bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-2">
+                                Open Clients Modal
+                            </button>
+                            <div id="selectedClientName">
+                                <!-- Selected Client Name will be populated here -->
+                            </div>
+                        </div>
+                        <!-- Clients Modal -->
+                        <div x-show="showClientModal" class="client-modal fixed inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center z-20" @keydown.escape.window="showClientModal = false">
+                            <!-- Modal Content -->
+                            <div class="modal-content bg-gray-800 p-4 rounded-lg shadow-lg w-full max-w-md mx-auto z-30 text-white">
+                                <h2 class="text-xl font-medium text-center mb-6">Select Client</h2>
+                                <!-- Dropdown -->
+                                <div class="relative mb-6">
+                                    <!-- Toggle Dropdown List -->
+                                    <button @click="showDropdown = !showDropdown" class="w-full p-2 border border-gray-600 rounded focus:outline-none">
+                                        Select Client
+                                    </button>
+                                    
+                                    <!-- Dropdown List (Initially hidden) -->
+                                    <div 
+                                        x-show="showDropdown" 
+                                        x-transition:enter="transition ease-out duration-300" 
+                                        x-transition:enter-start="opacity-0 scale-95" 
+                                        x-transition:enter-end="opacity-100 scale-100"
+                                        class="dropdown absolute w-full border border-gray-200 rounded mt-1 bg-white shadow-lg max-h-[300px] overflow-auto"
+                                        style="z-index: 10;"
+                                    >
+                                        <ul id="clientDropdownList">
+                                            <!-- Searchable Input populated here by JS -->
+                                            <!-- Clients will be populated here by JavaScript -->
+                                        </ul>
+                                    </div>
+                                </div>
+                                <!-- Close Modal Button -->
+                                <div class="flex justify-center items-center">
+                                    <button @click="showClientModal = false" class="close-modal-button px-4 py-2 bg-red-500 text-white text-base font-medium rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors duration-200">
+                                        Close
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto rounded-lg shadow-md bg-white max-h-[80vh]"> 
+                        <table id="stylesTable" class="min-w-full leading-normal hidden">
+                            <thead>
+                                <tr>
+                                    <th class="border p-2 sticky-th">Style Name</th>
+                                    <th class="border p-2 sticky-th">Price</th>
+                                    <th class="border p-2 rounded-tr-lg sticky-th">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-gray-700 text-center">
+                                <!-- Styles will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- Invoices Content -->
+                <div x-show="tabContentActive('invoices')" class="flex-1">
+                    <!-- Invoices Section Content Here -->
+                    <div x-data="{ showInvoiceClientModal: false, showInvoiceDropdown: false }" class="flex-col items-center">
+                        <div class="mb-2">
+                            <h1 class="text-2xl font-bold">Invoicing</h1>
+                            <p>Select a client and create an invoice by using the button below:</p>
+                        </div>
+                        <!-- Trigger Button for Client Modal in Invoices Tab -->
+                        <div class="flex justify-between items-center">
+                            <button @click="showInvoiceClientModal = true" class="open-invoice-modal-button flex bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-2">
+                                Select Client for Invoicing
+                            </button>
+                            <div id="selectedInvoiceClientName">
+                                <!-- Selected Client Name will be populated here -->
+                            </div>
+                        </div>
+                        
+                        <!-- Clients Modal for Invoices -->
+                        <div x-show="showInvoiceClientModal" class="invoice-client-modal fixed inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center z-20" @keydown.escape.window="showInvoiceClientModal = false">
+                            <!-- Modal Content -->
+                            <div class="modal-content bg-gray-800 p-4 rounded-lg shadow-lg w-full max-w-md mx-auto z-30 text-white">
+                                <h2 class="text-xl font-medium text-center mb-6">Select Client for Invoice</h2>
+                                <!-- Dropdown -->
+                                <div class="relative mb-6">
+                                    <!-- Toggle Dropdown List -->
+                                    <button @click="showInvoiceDropdown = !showInvoiceDropdown" class="w-full p-2 border border-gray-600 rounded focus:outline-none">
+                                        Select Client
+                                    </button>
+                                    <!-- Dropdown List (Initially hidden) -->
+                                    <div x-show="showInvoiceDropdown" 
+                                        x-transition:enter="transition ease-out duration-300" 
+                                        x-transition:enter-start="opacity-0 scale-95" 
+                                        x-transition:enter-end="opacity-100 scale-100"
+                                        class="dropdown absolute w-full border border-gray-200 rounded mt-1 bg-white shadow-lg max-h-[300px] overflow-auto"
+                                        style="z-index: 10;">
+
+                                        <!-- Searchable Input -->
+                                        <input type="search" id="invoiceClientSearchInput" 
+                                            class="w-full p-2 focus:outline-none focus:border-blue-500 text-gray-700 border-b border-gray-300" 
+                                            placeholder="Search clients..."></input>
+
+                                        <ul id="invoiceClientDropdownList">
+                                            <!-- Clients will be populated here by JavaScript -->
+                                        </ul>
+                                    </div>
+
+                                </div>
+                                <!-- Close Modal Button -->
+                                <div class="flex justify-center items-center">
+                                    <button @click="showInvoiceClientModal = false" class="close-invoice-modal-button px-4 py-2 bg-red-500 text-white text-base font-medium rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors duration-200">
+                                        Close
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Styles Table for Selected Client -->
+                        <div id="stylesTableContainer" class="overflow-x-auto rounded-lg shadow-md bg-white max-h-[80vh] hidden">
+                            <table id="invoiceStylesTable" class="min-w-full leading-normal">
+                                <thead>
+                                    <tr>
+                                        <th class="border p-2 sticky-th w-1/2 hidden">ID</th>
+                                        <th class="border p-2 sticky-th w-1/2">Style Name</th>
+                                        <th class="border p-2 sticky-th w-1/12">Price</th>
+                                        <th class="border p-2 sticky-th w-1/12">Quantity</th>
+                                        <th class="border p-2 rounded-tr-lg sticky-th w-1/12">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="text-gray-700 text-center">
+                                    <!-- Content populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Samples Table -->
+                        <div id="samplesContainer" class="overflow-x-auto rounded-lg shadow-md bg-white mt-4 hidden">
+                            <table id="samplesTable" class="min-w-full leading-normal">
+                                <thead>
+                                    <tr>
+                                        <th class="border p-2">Sample Name</th>
+                                        <th class="border p-2">Price/Hour (£)</th>
+                                        <th class="border p-2">Hours Worked</th>
+                                        <th class="border p-2">Total Price (£)</th>
+                                        <th class="border p-2">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Rows will be added here dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Selected Items Table -->
+                        <div id="selectedItemsContainer" class="overflow-x-auto rounded-lg shadow-md bg-white max-h-[80vh] mt-4 hidden">
+                            <table id="selectedItemsTable" class="min-w-full leading-normal">
+                                <thead class="sticky top-0">
+                                    <tr>
+                                        <th class="border p-2 w-1/2">Style Name</th>
+                                        <th class="border p-2 w-1/12">Quantity</th>
+                                        <th class="border p-2 w-1/12">Price</th>
+                                        <th class="border p-2 w-1/12">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="text-gray-700 text-center">
+                                    <!-- Selected items will be added here by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Totals Table -->
+                        <div id="totalsTableContainer" class="overflow-x-auto rounded-lg shadow-md bg-white mt-4">
+                            <table class="min-w-full leading-normal">
+                                <thead class="bg-gray-100">
+                                    <tr>
+                                        <th class="border p-2">Description</th>
+                                        <th class="border p-2">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="text-gray-700 text-center">
+                                    <tr>
+                                        <td class="border p-2">Subtotal</td>
+                                        <td class="border p-2" id="invoiceSubtotal">£0.00</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="border p-2">VAT (20%)</td>
+                                        <td class="border p-2" id="invoiceVAT">£0.00</td>
+                                    </tr>
+                                    <!-- Discount row will be dynamically shown/hidden -->
+                                    <tr id="discountRow" style="display: none;">
+                                        <td class="border p-2" id="discountDescription">Discount</td>
+                                        <td class="border p-2" id="invoiceDiscount">£0.00</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="border p-2 font-bold">Total</td>
+                                        <td class="border p-2 font-bold" id="invoiceTotal">£0.00</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Button for Adding Discounts -->
+                        <div x-data="discountModal()" class="mt-4">
+                            <!-- Trigger Button -->
+                            <button @click="openModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                                Add Discount
+                            </button>
+                            <button id="removeDiscountButton" class="bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-4 ml-2 rounded">
+                                Remove Discount
+                            </button>
+                            <button id="addSampleButton" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mb-2 opacity-50 cursor-not-allowed" disabled title="Select a client first">
+                                Add Sample
+                            </button>
+
+                            <button id="generatePDFButton" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 ml-2 rounded">
+                                Generate PDF
+                            </button>
+                            <div class="text-gray-900 font-semibold text-m mt-2">
+                                <p>
+                                    1. Allow user to sort table - by name(alphabetically) and by price (ascending/descending)
+                                </p>
+                                <p>
+                                    2. Create search functionality to display styles by name
+                                </p>
+                                <p>
+                                    3. Create a search functionality that reactively filters out all of the styles. Implement this inside the clients and styles sections too.
+                                </p>
+                                <p>
+                                    4. When you swap screens reset the tables in invoicing 
+                                </p>
+                                <p>
+                                    5. Add Extras in addition to discount. In there you have an extra input field which accepts texts. User enters discount, deposit etc. Then when PDF generate it displays with the text 
+                                </p>
+                            </div>
+
+
+                            <!-- Modal -->
+                            <div x-show="isOpen" class="fixed inset-0 bg-gray-800 bg-opacity-50 overflow-y-auto h-full w-full z-50" x-cloak>
+                                <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-gray-800">
+                                    <div class="mt-3 text-center">
+                                        <h3 class="text-xl leading-6 font-medium text-white">Add Discount</h3>
+                                        <div class="mt-2">
+                                            <input type="number" x-model="discountValue" placeholder="Discount Value" id="discountValueInput" class="mb-4 w-full p-2 border rounded">
+                                            <select id="discountTypeSelect" class="mb-4 w-full p-2 border rounded">
+                                                <option value="flat">£ (Flat)</option>
+                                                <option value="percent">% (Percentage)</option>
+                                            </select>
+                                            <button @click="window.invoicingUI.handleApplyDiscount()" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                                                Apply
+                                            </button>
+                                            <button @click="isOpen=false" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 ml-2 rounded">
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                    </div>
+                
+                    <!-- ... rest of the Invoices tab content ... -->
+                </div>
+                
+            </div>
+        </div>
+        <script>
+            function discountModal() {
+                return {
+                    isOpen: false,
+                    discountType: 'flat',
+                    discountValue: 0,
+                    openModal() {
+                        this.isOpen = true;
+                    },
+                    closeModal() {
+                        this.isOpen = false;
+                    },
+                    applyDiscount() {
+                        // Logic to apply discount
+                        // Need to communicate the discount to the totalsTable component
+                        this.closeModal();
+                    }
+                };
+            }
+            
+            function totalsTable() {
+                return {
+                    discountApplied: false,
+                    discountType: '',
+                    discountValue: 0,
+                    discountDisplay: '',
+                    applyDiscount(type, value) {
+                        this.discountApplied = true;
+                        this.discountType = type;
+                        this.discountValue = value;
+                        // Calculate and display discount
+                    }
+                };
+            }
+            </script>
+            
+    </body>
+</html>
+
