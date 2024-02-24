@@ -75,7 +75,7 @@
                             <thead>
                                 <tr class="bg-gray-100">
                                     <th class="hidden w-1/12 sticky-th">ID</th>
-                                    <th class="border p-2 w-2/12 sticky-th">Name</th>
+                                    <th id="sortNameClients" class="border p-2 w-2/12 sticky-th">Name</th>
                                     <th class="border p-2 w-2/12 sticky-th">Company Name</th>
                                     <th class="border p-2 w-3/12 sticky-th">Address</th>
                                     <th class="border p-2 w-1/12 sticky-th">Email</th>
@@ -145,11 +145,14 @@
                                     <!-- Dropdown List (Initially hidden) -->
                                     <div 
                                         x-show="showDropdown" 
-                                        x-transition:enter="transition ease-out duration-300" 
-                                        x-transition:enter-start="opacity-0 scale-95" 
-                                        x-transition:enter-end="opacity-100 scale-100"
-                                        class="dropdown absolute w-full border border-gray-200 rounded mt-1 bg-white shadow-lg max-h-[300px] overflow-auto"
-                                        style="z-index: 10;"
+                                        x-transition:enter="transition ease-out duration-500" 
+                                        x-transition:enter-start="transform scale-y-0 opacity-0" 
+                                        x-transition:enter-end="transform scale-y-100 opacity-100" 
+                                        x-transition:leave="transition ease-in duration-500" 
+                                        x-transition:leave-start="transform scale-y-100 opacity-100" 
+                                        x-transition:leave-end="transform scale-y-0 opacity-0" 
+                                        class="dropdown absolute w-full border border-gray-200 rounded mt-1 bg-white shadow-lg max-h-[300px] overflow-auto z-10"
+                                        style="transform-origin: top;"
                                     >
                                         <ul id="clientDropdownList">
                                             <!-- Searchable Input populated here by JS -->
@@ -170,7 +173,7 @@
                         <table id="stylesTable" class="min-w-full leading-normal hidden">
                             <thead>
                                 <tr>
-                                    <th class="border p-2 sticky-th">Style Name</th>
+                                    <th id="sortByName" class="border p-2 sticky-th">Style Name</th>
                                     <th class="border p-2 sticky-th">Price</th>
                                     <th class="border p-2 rounded-tr-lg sticky-th">Actions</th>
                                 </tr>
@@ -180,6 +183,11 @@
                             </tbody>
                         </table>
                     </div>
+                    <button 
+                        id="addStyle" 
+                        class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mb-2 opacity-50 cursor-not-allowed mt-2" title="Select a client first" disabled>
+                        Add Style
+                    </button>
                 </div>
                 <!-- Invoices Content -->
                 <div x-show="tabContentActive('invoices')" class="flex-1">
@@ -212,11 +220,14 @@
                                     </button>
                                     <!-- Dropdown List (Initially hidden) -->
                                     <div x-show="showInvoiceDropdown" 
-                                        x-transition:enter="transition ease-out duration-300" 
-                                        x-transition:enter-start="opacity-0 scale-95" 
-                                        x-transition:enter-end="opacity-100 scale-100"
+                                        x-transition:enter="transition ease-out duration-500" 
+                                        x-transition:enter-start="transform scale-y-0 opacity-0" 
+                                        x-transition:enter-end="transform scale-y-100 opacity-100"
+                                        x-transition:leave="transition ease-in duration-500"
+                                        x-transition:leave-start="transform scale-y-100 opacity-100"
+                                        x-transition:leave-end="transform scale-y-0 opacity-0"
                                         class="dropdown absolute w-full border border-gray-200 rounded mt-1 bg-white shadow-lg max-h-[300px] overflow-auto"
-                                        style="z-index: 10;">
+                                        style="z-index: 10; transform-origin: top;">
 
                                         <!-- Searchable Input -->
                                         <input type="search" id="invoiceClientSearchInput" 
@@ -340,7 +351,7 @@
                             </button>
                             <div class="text-gray-900 font-semibold text-m mt-2">
                                 <p>
-                                    1. Allow user to sort table - by name(alphabetically) and by price (ascending/descending)
+                                    1. Allow user to sort table - by name(alphabetically) - DONE
                                 </p>
                                 <p>
                                     2. Create search functionality to display styles by name

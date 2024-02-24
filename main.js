@@ -54,4 +54,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 });
 
+
+
 console.log("Hello from main.js!");
+

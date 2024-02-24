@@ -13,15 +13,16 @@ export class ClientsUI {
         cells.forEach((cell, index) => {
             if (index < cells.length - 1) { // Exclude the actions cell
                 if (isEdit) {
+                    // Create and configure the input field for editing
                     const input = document.createElement('input');
                     input.type = 'text';
                     input.value = cell.textContent;
-                    input.className = 'w-full mb-2 p-2 rounded bg-white text-gray-700';
-                    // Set input dataset for validation purposes
+                    input.className = 'w-full pl-2 py-1 rounded bg-white text-gray-700';
                     input.dataset.field = ['id', 'name', 'company_name', 'address', 'email'][index];
                     cell.innerHTML = '';
                     cell.appendChild(input);
                 } else {
+                    // Revert back to displaying the text content
                     const input = cell.querySelector('input');
                     if (input) {
                         cell.textContent = input.value;
@@ -29,12 +30,19 @@ export class ClientsUI {
                 }
             }
         });
-        // Modify actions cell based on edit state
+    
+        // Dynamically set the innerHTML of the actions cell to include the correct icons
         const actionsCell = cells[cells.length - 1];
         actionsCell.innerHTML = isEdit ? 
-            `<button class="save-button text-green-500 hover:text-green-700 hover:font-semibold transition-all duration-200" data-id="${row.dataset.id}">Save</button>` :
-            `<button class="edit-button text-blue-500 hover:text-blue-700 hover:font-semibold transition-all duration-200" data-id="${row.dataset.id}">Edit</button>
-            <button class="delete-button text-red-500 hover:text-red-600 hover:font-semibold transition-all duration-200" data-id="${row.dataset.id}">Delete</button>`;
+            `<button class="save-button text-green-500 hover:text-green-700 hover:font-semibold transition-all duration-200" data-id="${row.dataset.id}">
+                <i class="fa-solid fa-floppy-disk"></i>
+            </button>` :
+            `<button class="edit-button text-blue-500 hover:text-blue-700 hover:font-semibold transition-all duration-200" data-id="${row.dataset.id}">
+                <i class="fas fa-edit"></i>
+            </button>
+            <button class="delete-button text-red-500 hover:text-red-600 hover:font-semibold transition-all duration-200" data-id="${row.dataset.id}">
+                <i class="fas fa-trash"></i>
+            </button>`;
     }
 
     renderClients(clients) {
@@ -51,14 +59,42 @@ export class ClientsUI {
 
             const actionsCell = row.insertCell(5);
             actionsCell.innerHTML = `
-                <button id="editClient" class="edit-button text-blue-500 hover:text-blue-700 hover:font-semibold transition-all duration-200" data-id="${client.id}">Edit</button>
-                <button id="deleteClient" class="delete-button text-red-500 hover:text-red-600 hover:font-semibold transition-all duration-200" data-id="${client.id}">Delete</button>
-            `;
-            actionsCell.className = 'border p-2 w-2/12 '; // Add border
-
+            <button class="edit-button text-blue-500 hover:text-blue-700 hover:font-semibold transition-all duration-200" data-id="${client.id}">
+                <i class="fas fa-edit"></i>
+            </button>
+            <button class="delete-button text-red-500 hover:text-red-600 hover:font-semibold transition-all duration-200" data-id="${client.id}">
+                <i class="fas fa-trash"></i>
+            </button>
+        `;
+        this.attachSortListener();
+        actionsCell.className = 'border p-2 w-2/12'; // Add border
+        
             // Add event listeners for edit and delete buttons
         });
     }
+    attachSortListener() {
+        // Assumes "Name" column is the second header (index 1)
+        const nameHeader = this.table.querySelectorAll('th')[1];
+        nameHeader.style.cursor = 'pointer'; // Optional: Change cursor on hover to indicate interactivity
+
+        nameHeader.addEventListener('click', () => {
+            const isAscending = nameHeader.classList.toggle('ascending');
+            this.sortTableByColumn(1, isAscending); // Assuming name is in the second column
+        });
+    }
+
+    sortTableByColumn(columnIndex, ascending = true) {
+        const rowsArray = Array.from(this.tbody.querySelectorAll('tr'));
+        rowsArray.sort((a, b) => {
+            const aText = a.querySelector(`td:nth-child(${columnIndex + 1})`).textContent.trim().toLowerCase();
+            const bText = b.querySelector(`td:nth-child(${columnIndex + 1})`).textContent.trim().toLowerCase();
+            return ascending ? aText.localeCompare(bText) : bText.localeCompare(aText);
+        });
+
+        // Re-append rows in sorted order
+        rowsArray.forEach(row => this.tbody.appendChild(row));
+    }
+
 
     createCell(row, text, className, data) {
         const cell = row.insertCell();
@@ -75,10 +111,13 @@ export class ClientsUI {
 
     attachEventListeners() {
         this.table.addEventListener('click', async (event) => {
-            if (event.target.classList.contains('edit-button')) {
-                const row = event.target.closest('tr');
-                this.toggleEditClient(row, true);
-            } else if (event.target.classList.contains('save-button')) {
+            let target = event.target;
+            if (target.tagName === 'I') target = target.closest('button');
+
+            if (target && target.classList.contains('edit-button')) {
+            const row = target.closest('tr');
+            this.toggleEditClient(row, true);
+            } else if (target && target.classList.contains('save-button')) {
                 const row = event.target.closest('tr');
                 const clientId = row.dataset.id; // Correctly retrieve clientId from the row's dataset
                 const inputs = row.querySelectorAll('input');
@@ -142,7 +181,7 @@ export class ClientsUI {
                 } catch (error) {
                     console.error('Error updating client:', error);
                 }
-            } else if (event.target.classList.contains('delete-button')) {
+            } else if (target && target.classList.contains('delete-button')) {
                 const row = event.target.closest('tr');
                 const clientId = row.getAttribute('data-id'); // Retrieve the data-id attribute
                 console.log('Deleting client with ID:', clientId);

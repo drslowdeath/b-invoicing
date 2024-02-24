@@ -38,7 +38,6 @@ export class StylesUI {
     
         const searchInput = this.clientModal.querySelector('input[type="search"]');
         if (!searchInput) {
-            console.error('Search input not found inside the modal');
             return;
         }
         searchInput.addEventListener('input', (event) => {
@@ -136,24 +135,17 @@ export class StylesUI {
             .catch(error => {
                 console.error('Error loading styles for client:', error);
             });
+
+            // Logic to enable the addStyle button 
+            const addStyle = document.getElementById('addStyle');
+            addStyle.classList.remove('opacity-50', 'cursor-not-allowed');
+            addStyle.removeAttribute('disabled', 'title');
+            addStyle.removeAttribute('title');
     }
 
     renderStylesTable(styles, clientId) {
         const tbody = this.stylesTable.querySelector('tbody');
         tbody.innerHTML = ''; // Clear previous styles
-    
-        // Add an 'Add Style' button row
-        const addRow = tbody.insertRow();
-        const addCellBtn = addRow.insertCell(-1);
-        addCellBtn.colSpan = 3; // Take up the entire row
-        addCellBtn.innerHTML = `
-        <div class="flex justify-center">
-            <button 
-            id="addStyle" 
-            class="text-green-500 hover:text-green-700 focus:outline-none transition">
-                <i class="fas fa-plus"></i> Add Style
-            </button>
-        </div>`;
         document.getElementById('addStyle').addEventListener('click', () => {
             this.addStyleRow(clientId);
         });
@@ -195,6 +187,30 @@ export class StylesUI {
             });
         });
         this.stylesTable.classList.remove('hidden'); // Show the styled table
+        this.attachSortNameListener();
+    }
+
+    attachSortNameListener() {
+        const nameHeader = this.stylesTable.querySelector('#sortByName');
+        nameHeader.style.cursor = 'pointer'; // Optional: change the cursor on hover to indicate it's clickable
+
+        nameHeader.addEventListener('click', () => {
+            const isAscending = nameHeader.classList.toggle('ascending');
+            this.sortTableByColumn(isAscending);
+        });
+    }
+
+    sortTableByColumn(ascending = true) {
+        const tbody = this.stylesTable.querySelector('tbody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        
+        rows.sort((a, b) => {
+            const aText = a.cells[0].textContent.trim().toLowerCase(); // Assuming the name is the first cell
+            const bText = b.cells[0].textContent.trim().toLowerCase();
+            return ascending ? aText.localeCompare(bText) : bText.localeCompare(aText);
+        });
+
+        rows.forEach(row => tbody.appendChild(row)); // Re-append rows in sorted order
     }
 
     handleSearch(searchTerm) {
@@ -217,7 +233,6 @@ export class StylesUI {
             alert('Please add existing styles. Maximum of 10 new styles can be added at a time.');
             return;
         }
-       
 
         const tbody = this.stylesTable.querySelector('tbody');
         const newRow = tbody.insertRow();
@@ -225,14 +240,14 @@ export class StylesUI {
         const priceInputCell = newRow.insertCell();
         const actionsCell = newRow.insertCell();
 
-        nameInputCell.innerHTML = `<input class="w-full" type="text" placeholder="Style Name" maxlength="65" required>`;
-        priceInputCell.innerHTML = `<input class="w-full" type="number" placeholder="Price" step="0.01" min="0" max="999999.99" required>`;
+        nameInputCell.innerHTML = `<input class="w-full p-1" type="text" placeholder="Style Name" maxlength="65" required>`;
+        priceInputCell.innerHTML = `<input class="w-full p-1" type="number" placeholder="Price" step="0.01" min="0" max="999999.99" required>`;
         actionsCell.innerHTML = `
             <button class="save-new-style text-green-500 hover:text-green-700 focus:outline-none transition">
-                Save
+                <i class="fa-solid fa-floppy-disk fa-sm"></i>
             </button>
             <button class="cancel-new-style text-red-500 hover:text-red-700 focus:outline-none transition ml-2">
-                Cancel
+                <i class="fa-solid fa-xmark"></i>
             </button>`;
             
         this.newStyleRowCount++; // Increment the counter for new style rows
@@ -329,7 +344,7 @@ export class StylesUI {
         
         // Create a new Save button
         const saveButton = document.createElement('button');
-        saveButton.textContent = 'Save';
+        saveButton.innerHTML = '<i class="fa-solid fa-floppy-disk fa-sm"></i>';
         saveButton.className = 'text-green-500 hover:text-green-700 focus:outline-none transition';
         
         // Event listener for saving changes
@@ -375,7 +390,7 @@ export class StylesUI {
     
         // Create a Cancel button
         const cancelEditButton = document.createElement('button');
-        cancelEditButton.textContent = 'Cancel';
+        cancelEditButton.innerHTML = '<i class="fa-solid fa-xmark"></i>';
         cancelEditButton.className = 'text-red-500 hover:text-red-700 focus:outline-none transition ml-2';
         cancelEditButton.addEventListener('click', () => {
             nameCell.textContent = originalName;
