@@ -19,8 +19,35 @@
             this.selectedItems = [];
             this.invoiceManager = new InvoiceManager();
             this.sampleManager = new SampleManager(this.invoiceManager, '#samplesTable tbody', '#samplesContainer', this.updateTotalsUI.bind(this));
+            this.initializeSearchBarInvoicing();
         }
+
+        initializeSearchBarInvoicing() {
+            const searchBar = document.getElementById('invoicingTableSearchBar');
+            searchBar.addEventListener('input', (event) => {
+                this.filterStyles(event.target.value);
+            });
+        }
+
+        filterStyles(searchTerm) {
+            const tbody = this.invoiceStylesTable.querySelector('tbody');
+            const rows = tbody.querySelectorAll('tr');
         
+            // Normalize search term: lowercase and remove diacritics if necessary
+            const normalizedSearchTerm = searchTerm.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        
+            rows.forEach(row => {
+                // Searching for style in first column
+                const nameCellText = row.cells[1].textContent;
+        
+                // Normalize cell text: lowercase and remove diacritics if necessary
+                const normalizedCellText = nameCellText.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        
+                // Check if the normalized cell text includes the normalized search term
+                row.style.display = normalizedCellText.includes(normalizedSearchTerm) ? '' : 'none';
+            });
+        }
+
         initializeModal() {
             const openModalButton = document.querySelector('.open-invoice-modal-button');
             openModalButton.addEventListener('click', () => {
@@ -174,10 +201,33 @@
                 addButton.onclick = () => this.addToSelectedItems(style.id, style.name, parseInt(quantityInput.value, 10), parseFloat(style.price));
                 actionCell.appendChild(addButton);
                 actionCell.className = 'border whitespace-normal'
-                
             });
+            this.attachSortNameListenerInvoicing();
+
         }
         
+        attachSortNameListenerInvoicing() {
+            const nameHeader = this.invoiceStylesTable.querySelector('#sortByNameInvoicing');
+            nameHeader.style.cursor = 'pointer'; 
+
+            nameHeader.addEventListener('click', () => {
+                const isAscending = nameHeader.classList.toggle('ascending');
+                this.sortTableByColumn(isAscending);
+            });
+        }
+    
+        sortTableByColumn(ascending = true) {
+            const tbody = this.invoiceStylesTable.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            
+            rows.sort((a, b) => {
+                const aText = a.cells[1].textContent.trim().toLowerCase(); // Assuming the name is the first cell
+                const bText = b.cells[1].textContent.trim().toLowerCase();
+                return ascending ? aText.localeCompare(bText) : bText.localeCompare(aText);
+            });
+    
+            rows.forEach(row => tbody.appendChild(row)); // Re-append rows in sorted order
+        }
         
         addToSelectedItems(styleId, styleName, quantity, price) {
             // Validation checks as before
@@ -238,22 +288,39 @@
 
         updateTotalsUI() {
             const summary = this.invoiceManager.getInvoiceSummary();
-    
+            console.log(summary);
+        
+            // Update standard totals information directly from the summary
             document.getElementById('invoiceSubtotal').textContent = `£${summary.subtotal}`;
             document.getElementById('invoiceVAT').textContent = `£${summary.vat}`;
             document.getElementById('invoiceTotal').textContent = `£${summary.total}`;
-    
-            // Update and display discount row if applicable
-            const discountAmount = parseFloat(summary.discount);
+        
+            // Update discount display logic
+            let discountAmount = this.invoiceManager.calculateDiscount(); // Assuming this now directly gives the total discount applied
             if (discountAmount > 0) {
                 document.getElementById('discountRow').style.display = '';
-                document.getElementById('invoiceDiscount').textContent = `£${summary.discount}`;
-                // Update discount description based on type if necessary
-                // document.getElementById('discountDescription').textContent = `Discount (${this.invoiceManager.discountType === 'flat' ? '£' : '%' })`;
+                document.getElementById('invoiceDiscount').textContent = `£${discountAmount.toFixed(2)}`;
             } else {
                 document.getElementById('discountRow').style.display = 'none';
             }
+        
+            // Handle Extras - Display extras as individual rows if applicable
+            const extrasTableBody = document.getElementById('extrasRow');
+            extrasTableBody.innerHTML = ''; // Clear existing rows
+            if (summary.extras && summary.extras.length > 0) {
+                summary.extras.split(', ').forEach(extra => {
+                    const [note, value] = extra.split(' - £');
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td class="border p-2">${note}</td><td class="border p-2">£${value}</td>`;
+                    extrasTableBody.appendChild(row);
+                });
+                extrasTableBody.style.display = '';
+            } else {
+                extrasTableBody.style.display = 'none';
+            }
         }
+        
+        
 
         removeFromSelectedItems(id) {
             this.invoiceManager.removeItem(id); // Remove the item using its ID
@@ -266,12 +333,10 @@
         handleApplyDiscount() {
             const discountType = document.querySelector('#discountTypeSelect').value; 
             const discountValue = parseFloat(document.querySelector('#discountValueInput').value);
-    
             if (isNaN(discountValue)) {
                 alert("Please enter a valid discount value.");
                 return;
             }
-    
             this.applyDiscount(discountType, discountValue);
         }
     
@@ -288,6 +353,29 @@
             this.invoiceManager.removeDiscount();
             this.updateTotalsUI();
         }
+        
+
+        handleApplyExtra() {
+            const extraNote = document.querySelector('#extraNoteInput').value;
+            //const extraType = document.querySelector('#extraTypeSelect').value;
+            const extraValue = parseFloat(document.querySelector('#extraValueInput').value);
+            if (isNaN(extraValue)) {
+                alert("Please enter a valid extra amount.");
+                return;
+            }
+            this.applyExtra(extraNote, extraValue);
+        }
+
+        applyExtra(extraNote, extraValue) {
+            // Logic to apply extra to invoiceManager
+            this.invoiceManager.addExtra(extraNote, extraValue); 
+            this.updateTotalsUI();
+        }
+        
+        handleRemoveLastExtra() {
+            this.invoiceManager.removeLastExtra();
+            this.updateTotalsUI();
+        }
 
         resetTotalsAndItems() {
             // Resets InvoiceManager state
@@ -295,7 +383,7 @@
 
             // Clears selected items from the UI
             const selectedItemsTbody = this.selectedItemsTable.querySelector('tbody');
-            selectedItemsTbody.innnerHTML = '';
+            selectedItemsTbody.innerHTML = '';
 
             // Clears samples from the UI
             const samplesTbody = document.querySelector('#samplesTable tbody');
@@ -307,6 +395,7 @@
             document.getElementById('invoiceDiscount').textContent = '£0.00';
             document.getElementById('invoiceTotal').textContent = '£0.00';
             document.getElementById('discountRow').style.display = 'none'; // Hide discount row
+            document.getElementById('extrasRow').style.display = 'none'; 
         }
 
         // PDF generation HERE 
@@ -315,136 +404,140 @@
                 items: this.invoiceManager.items,
                 subtotal: this.invoiceManager.subtotal.toFixed(2),
                 vat: this.invoiceManager.calculateVAT(this.invoiceManager.subtotal).toFixed(2),
+                // Discount here 
+                //discount: this.invoiceManager.calculateDiscount(this.)
                 total: this.invoiceManager.total.toFixed(2)
             };
             const pdfGenerator = new PDFGenerator(invoiceData);
             pdfGenerator.downloadPDF();
         }
     }
+    // You calculate all discounts and extras on the subtotal first then add the vat its quite simple really. Calculate subtotal. Always perform discounts on the subtotal. Adjust subtotal then perform another discount operation.Allowing the discount to be applied as percentage or flat rate and extra (discount) as flat rate 
 
     class InvoiceManager {
         constructor() {
-            this.items = []; // Holds items with { id, name, quantity, price, totalPrice }
-            this.samples = []; // Holds samples with { id, name, pricePerHour, hoursWorked, totalPrice }
-            this.subtotal = 0;
-            this.vatRate = 0.20; // 20% VAT
-            this.discount = { percentage: 0, flat: 0 };
-            this.total = 0;
+            this.items = []; // Holds invoice items
+            this.samples = []; // Optional: Holds additional services or products
+            this.vatRate = 0.20; // Standard VAT rate
+            this.discount = { percentage: 0, flat: 0 }; // Initialize discounts
+            this.extras = []; // Holds additional discounts or charges
         }
-        
+    
+        // Add an item
         addItem(id, name, quantity, price) {
-            const existingItem = this.items.find(item => item.id === id);
-            if (existingItem) {
-                existingItem.quantity += quantity;
-                existingItem.totalPrice = existingItem.price * existingItem.quantity;
-            } else {
-                this.items.push({ id, name, quantity, price, totalPrice: price * quantity });
-            }
+            const totalPrice = price * quantity;
+            this.items.push({ id, name, quantity, price, totalPrice });
             this.calculateTotals();
-            console.log('Item Added', {id, name, quantity , price});
-            this.logCurrentState();
         }
-        
+    
+        // Remove an item
         removeItem(id) {
-            const itemIndex = this.items.findIndex(item => item.id === id);
-            if (itemIndex > -1) {
-                this.items.splice(itemIndex, 1);
-                this.calculateTotals();
-            }
-            console.log(`Item Removed: ${id}`);
-            this.logCurrentState();
-        }
-    
-        addSample({id, name, pricePerHour, hoursWorked, totalPrice}) {
-            this.samples.push({id, name, pricePerHour, hoursWorked, totalPrice});
+            this.items = this.items.filter(item => item.id !== id);
             this.calculateTotals();
-            console.log('Sample Added', {id, name, pricePerHour, hoursWorked, totalPrice});
-            this.logCurrentState();
         }
     
+        // Add a sample
+        addSample({ id, name, pricePerHour, hoursWorked }) {
+            const totalPrice = pricePerHour * hoursWorked;
+            this.samples.push({ id, name, pricePerHour, hoursWorked, totalPrice });
+            this.calculateTotals();
+        }
+    
+        // Remove a sample
         removeSample(id) {
-            const index = this.samples.findIndex(sample => sample.id === id);
-            if (index > -1) {
-                this.samples.splice(index, 1);
-                this.calculateTotals();
-            }
-            console.log(`Sample Removed: ${id}`);
-            this.logCurrentState();
+            this.samples = this.samples.filter(sample => sample.id !== id);
+            this.calculateTotals();
         }
     
-        updateSample(id, newTotal) {
-            const sample = this.samples.find(sample => sample.id === id);
-            if (sample) {
-                sample.totalPrice = newTotal;
-                this.calculateTotals();
-            }
-            console.log(`Sample Updated: ${id}, New Total: ${newTotal}`);
-            this.logCurrentState();
-        }
-        
-        applyDiscount(percentage = 0, flat = 0) {
+        // Apply discount
+        applyDiscount(percentage, flat) {
             this.discount = { percentage, flat };
             this.calculateTotals();
-            console.log(`Discount Applied: ${percentage}% £${flat}`);
-            this.logCurrentState();
         }
-        
+
+        removeDiscount() {
+            // Reset the discount to default values
+            this.discount = { percentage: 0, flat: 0 };
+            
+            // Recalculate the totals to reflect the removal of the discount
+            this.calculateTotals();
+        }
+    
+        // Add an extra
+        addExtra(note, value) {
+            this.extras.push({ note, value });
+            this.calculateTotals();
+        }
+    
+        // Remove the last extra
+        removeLastExtra() {
+            this.extras.pop();
+            this.calculateTotals();
+        }
+    
+        // Calculate totals
         calculateTotals() {
-            const itemsTotal = this.items.reduce((acc, item) => acc + item.totalPrice, 0);
-            const samplesTotal = this.samples.reduce((acc, sample) => acc + sample.totalPrice, 0);
-            this.subtotal = itemsTotal + samplesTotal;
-            const discountAmount = this.calculateDiscount();
-            const vatAmount = this.calculateVAT(this.subtotal - discountAmount);
-            this.total = this.subtotal - discountAmount + vatAmount;
-            this.logCurrentState(); // Optional: log state after each calculation
+            // Calculate initial subtotal from items and samples
+            let subtotal = this.items.reduce((acc, item) => acc + item.totalPrice, 0) + 
+                        this.samples.reduce((acc, sample) => acc + sample.totalPrice, 0);
+
+            // Deduct extras from subtotal
+            const extrasTotal = this.extras.reduce((acc, extra) => acc + extra.value, 0);
+            subtotal -= extrasTotal;
+
+            // Apply flat discount directly to subtotal
+            if (this.discount.flat > 0) {
+                subtotal -= this.discount.flat;
+            }
+
+            // Apply percentage discount after extras and flat discount
+            if (this.discount.percentage > 0) {
+                subtotal -= subtotal * (this.discount.percentage / 100);
+            }
+
+            // Ensure subtotal does not go negative
+            subtotal = Math.max(0, subtotal);
+
+            // Calculate VAT on the adjusted subtotal
+            const vat = subtotal * this.vatRate;
+
+            // Calculate final total
+            const total = subtotal + vat;
+
+            // Update properties for access
+            this.subtotal = subtotal;
+            this.vat = vat;
+            this.total = total;
         }
-        
-        calculateDiscount() {
-            const discountFromPercentage = (this.subtotal * this.discount.percentage) / 100;
-            return discountFromPercentage + this.discount.flat;
-        }
-        
-        calculateVAT(subtotal) {
-            return subtotal * this.vatRate;
-        }
-        
+    
+        // Helper to get the invoice summary
         getInvoiceSummary() {
             return {
                 subtotal: this.subtotal.toFixed(2),
-                vat: this.calculateVAT(this.subtotal - this.calculateDiscount()).toFixed(2),
-                discount: this.calculateDiscount().toFixed(2),
+                vat: this.vat.toFixed(2),
                 total: this.total.toFixed(2),
+                discount: this.calculateDiscount().toFixed(2),
+                extras: this.extras.map(extra => `${extra.note} - £${extra.value}`).join(', '),
             };
         }
     
-        removeDiscount() {
-            this.applyDiscount(0, 0);
-            this.calculateTotals();
-            console.log('Discount Removed');
-        }
-    
-        logCurrentState() {
-            console.log('Current State:', {
-                items: this.items,
-                samples: this.samples,
-                subtotal: this.subtotal,
-                discount: this.discount,
-                vat: this.calculateVAT(this.subtotal - this.calculateDiscount()),
-                total: this.total
-            });
+        calculateDiscount() {
+            let discountAmount = this.discount.flat;
+            if (this.discount.percentage > 0) {
+                discountAmount += this.subtotal * (this.discount.percentage / 100);
+            }
+            return discountAmount;
         }
     
         resetState() {
             this.items = [];
             this.samples = [];
-            this.subtotal = 0;
             this.discount = { percentage: 0, flat: 0 };
-            this.total = 0;
-            console.log('State Reset');
-            this.logCurrentState();
+            this.extras = [];
+            this.calculateTotals(); // Recalculate totals to reset them
         }
     }
-    
+
     class SampleManager {
         constructor(invoiceManager, samplesTableSelector, samplesContainerSelector, updateUITotalsCallback) {
             this.invoiceManager = invoiceManager;
@@ -577,7 +670,7 @@
         }
     
         generateBody(doc) {
-            // Example of adding invoice items to the PDF
+            // Subtotal, VAT, deposit and total controls
             let yPos = 30;
             this.invoiceData.items.forEach((item, index) => {
                 doc.setFontSize(12);
@@ -610,6 +703,12 @@
         document.getElementById('removeDiscountButton').addEventListener('click', function() {
             invoicingUI.handleRemoveDiscount();
         })
+
+        // Ev Listener to remove the last Extra Added
+        document.getElementById('removeLastExtraButton').addEventListener('click', function() {
+            invoicingUI.handleRemoveLastExtra();
+            console.log("Cliiiiick");
+        });
 
         document.getElementById('generatePDFButton').addEventListener('click', () => invoicingUI.generateInvoicePDF());
 

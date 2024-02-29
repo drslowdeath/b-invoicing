@@ -169,8 +169,12 @@
                             </div>
                         </div>
                     </div>
-                    <div class="overflow-x-auto rounded-lg shadow-md bg-white max-h-[80vh]"> 
+                    <!-- Styles Table -->
+                    <div class="overflow-x-auto rounded-lg shadow-md bg-white max-h-[80vh]">
                         <table id="stylesTable" class="min-w-full leading-normal hidden">
+                            <div id="stylesTableSearchBarDiv" class="flex justify-center m-2 hidden">
+                                <input type="text" name="searchbar" id="stylesTableSearchBar" class="py-2 pl-5 pr-3 mx-2 rounded-lg shadow focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-700" placeholder="Search...">
+                            </div>
                             <thead>
                                 <tr>
                                     <th id="sortByName" class="border p-2 sticky-th">Style Name</th>
@@ -251,11 +255,14 @@
 
                         <!-- Styles Table for Selected Client -->
                         <div id="stylesTableContainer" class="overflow-x-auto rounded-lg shadow-md bg-white max-h-[80vh] hidden">
+                            <div id="invoicingTableSearchBarDiv" class="flex justify-center m-2">
+                                <input type="text" name="searchbar" id="invoicingTableSearchBar" class="py-2 pl-5 pr-3 mx-2 rounded-lg shadow focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-700" placeholder="Search...">
+                            </div>
                             <table id="invoiceStylesTable" class="min-w-full leading-normal">
                                 <thead>
                                     <tr>
                                         <th class="border p-2 sticky-th w-1/2 hidden">ID</th>
-                                        <th class="border p-2 sticky-th w-1/2">Style Name</th>
+                                        <th id="sortByNameInvoicing" class="border p-2 sticky-th w-1/2">Style Name</th>
                                         <th class="border p-2 sticky-th w-1/12">Price</th>
                                         <th class="border p-2 sticky-th w-1/12">Quantity</th>
                                         <th class="border p-2 rounded-tr-lg sticky-th w-1/12">Actions</th>
@@ -316,6 +323,7 @@
                                         <td class="border p-2">Subtotal</td>
                                         <td class="border p-2" id="invoiceSubtotal">£0.00</td>
                                     </tr>
+                                    
                                     <tr>
                                         <td class="border p-2">VAT (20%)</td>
                                         <td class="border p-2" id="invoiceVAT">£0.00</td>
@@ -324,6 +332,9 @@
                                     <tr id="discountRow" style="display: none;">
                                         <td class="border p-2" id="discountDescription">Discount</td>
                                         <td class="border p-2" id="invoiceDiscount">£0.00</td>
+                                    </tr>
+                                    <tr id="extrasRow" style="display: none">
+                                        <!-- Dynamic Extra Rows will be inserted here -->
                                     </tr>
                                     <tr>
                                         <td class="border p-2 font-bold">Total</td>
@@ -339,38 +350,17 @@
                             <button @click="openModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
                                 Add Discount
                             </button>
-                            <button id="removeDiscountButton" class="bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-4 ml-2 rounded">
-                                Remove Discount
-                            </button>
                             <button id="addSampleButton" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mb-2 opacity-50 cursor-not-allowed" disabled title="Select a client first">
                                 Add Sample
                             </button>
-
                             <button id="generatePDFButton" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 ml-2 rounded">
                                 Generate PDF
                             </button>
-                            <div class="text-gray-900 font-semibold text-m mt-2">
-                                <p>
-                                    1. Allow user to sort table - by name(alphabetically) - DONE
-                                </p>
-                                <p>
-                                    2. Create search functionality to display styles by name
-                                </p>
-                                <p>
-                                    3. Create a search functionality that reactively filters out all of the styles. Implement this inside the clients and styles sections too.
-                                </p>
-                                <p>
-                                    4. When you swap screens reset the tables in invoicing 
-                                </p>
-                                <p>
-                                    5. Add Extras in addition to discount. In there you have an extra input field which accepts texts. User enters discount, deposit etc. Then when PDF generate it displays with the text 
-                                </p>
-                            </div>
 
-
-                            <!-- Modal -->
+                            <!-- Add Discount & Extras Modal -->
                             <div x-show="isOpen" class="fixed inset-0 bg-gray-800 bg-opacity-50 overflow-y-auto h-full w-full z-50" x-cloak>
                                 <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-gray-800">
+                                    <!-- Discounts -->
                                     <div class="mt-3 text-center">
                                         <h3 class="text-xl leading-6 font-medium text-white">Add Discount</h3>
                                         <div class="mt-2">
@@ -382,6 +372,34 @@
                                             <button @click="window.invoicingUI.handleApplyDiscount()" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
                                                 Apply
                                             </button>
+                                            <button id="removeDiscountButton" class="bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-4 ml-2 rounded">
+                                                Remove
+                                            </button>
+                                        </div>
+                                        <!-- Extras -->
+                                        <div class="mt-3 text-center">
+                                            <h3 class="text-xl leading-6 font-medium text-white">Deposits & Extras</h3>
+                                            <div class="mt-2">
+                                                <input type="text" id="extraNoteInput" placeholder="Note" class="mb-4 w-full p-2 border rounded">
+                                                <input type="number" id="extraValueInput" placeholder="Extra Amount" class="mb-4 w-full p-2 border rounded">
+                                                <!--
+                                                    <select id="extraTypeSelect" class="mb-4 w-full p-2 border rounded">
+                                                    <option value="flat">£ (Flat)</option>
+                                                     
+                                                    REMOVING FOR NOW
+                                                    <option value="percent">% (Percentage)</option> 
+                                                    
+                                                    </select>
+                                                -->
+                                                <button @click="window.invoicingUI.handleApplyExtra()" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                                                    Apply
+                                                </button>
+                                                <button id="removeLastExtraButton" class="bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-4 ml-2 rounded">
+                                                    Remove
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="mt-3">
                                             <button @click="isOpen=false" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 ml-2 rounded">
                                                 Cancel
                                             </button>
@@ -390,12 +408,17 @@
                                 </div>
                             </div>
                         </div>
-                        
                     </div>
-                
-                    <!-- ... rest of the Invoices tab content ... -->
+                    <div class="text-gray-900 font-semibold text-m mt-2">
+                        <p>
+                            4. When you swap screens reset the tables in invoicing 
+                        </p>
+                        <p>
+                            5. Add Extras in addition to discount. In there you have an extra input field which accepts texts. User enters discount, deposit etc. Then when PDF generate it displays with the text 
+                        </p>
+                    </div>
+                    <!-- Additional Invoicing Content Here -->
                 </div>
-                
             </div>
         </div>
         <script>
@@ -404,6 +427,9 @@
                     isOpen: false,
                     discountType: 'flat',
                     discountValue: 0,
+                    extraNote: '',
+                    extraValue: 0,
+                    extraType: 'type',
                     openModal() {
                         this.isOpen = true;
                     },
@@ -413,6 +439,9 @@
                     applyDiscount() {
                         // Logic to apply discount
                         // Need to communicate the discount to the totalsTable component
+                        this.closeModal();
+                    },
+                    applyExtra() {
                         this.closeModal();
                     }
                 };

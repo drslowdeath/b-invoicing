@@ -14,8 +14,48 @@ export class StylesUI {
         this.initializeModal();
         this.newStyleRowCount = 0;
         this.clientNamesMap = {}; 
+        this.currentClientId = null;
+        this.initializeAddStyleButton();
+        this.initializeSearchBar();
     }
 
+    //reuse in invoicingUI - remember to include init in class constructor :) 
+    initializeSearchBar() {
+        const searchBar = document.getElementById('stylesTableSearchBar');
+        searchBar.addEventListener('input', (event) => {
+            this.filterStyles(event.target.value);
+        });
+    }
+
+    filterStyles(searchTerm) {
+        const tbody = this.stylesTable.querySelector('tbody');
+        const rows = tbody.querySelectorAll('tr');
+    
+        // Normalize search term: lowercase and remove diacritics if necessary
+        const normalizedSearchTerm = searchTerm.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    
+        rows.forEach(row => {
+            // Searching for style in first column
+            const nameCellText = row.cells[0].textContent;
+    
+            // Normalize cell text: lowercase and remove diacritics if necessary
+            const normalizedCellText = nameCellText.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    
+            // Check if the normalized cell text includes the normalized search term
+            row.style.display = normalizedCellText.includes(normalizedSearchTerm) ? '' : 'none';
+        });
+    }
+
+    initializeAddStyleButton() {
+        const addStyleBtn = document.getElementById('addStyle');
+        addStyleBtn.addEventListener('click', () => {
+            if (this.currentClientId) {
+                this.addStyleRow(this.currentClientId);
+            } else {
+                console.error("No client selected or Add Style button clicked without a client selection.");
+            }
+        });
+    }
     initializeModal() {
         const openModalButton = document.querySelector('.open-modal-button');
         if (!openModalButton) {
@@ -111,12 +151,13 @@ export class StylesUI {
     }
     
     selectClient(clientId) {
+        this.currentClientId = clientId;
         this.stylesDataService.fetchStylesByClient(clientId)
             .then(styles => {
                 this.renderStylesTable(styles, clientId);
                 this.clientModal.style.display = 'none'; // Close the modal
                 this.newStyleRowCount = 0; // Reset the newStyleRowCount when a new client is selected
-    
+                
                 // Use clientNamesMap to get the client's name
                 const selectedClientName = this.clientNamesMap[clientId];
                 const selectedClientDiv = document.getElementById('selectedClientName');
@@ -141,14 +182,15 @@ export class StylesUI {
             addStyle.classList.remove('opacity-50', 'cursor-not-allowed');
             addStyle.removeAttribute('disabled', 'title');
             addStyle.removeAttribute('title');
+            
+            // Show Search Bar
+            document.getElementById('stylesTableSearchBarDiv').classList.remove('hidden');
     }
-
-    renderStylesTable(styles, clientId) {
+    
+    renderStylesTable(styles) {
         const tbody = this.stylesTable.querySelector('tbody');
         tbody.innerHTML = ''; // Clear previous styles
-        document.getElementById('addStyle').addEventListener('click', () => {
-            this.addStyleRow(clientId);
-        });
+        
     
         // Populate existing styles
         styles.forEach((style) => {
@@ -189,10 +231,10 @@ export class StylesUI {
         this.stylesTable.classList.remove('hidden'); // Show the styled table
         this.attachSortNameListener();
     }
-
+    
     attachSortNameListener() {
         const nameHeader = this.stylesTable.querySelector('#sortByName');
-        nameHeader.style.cursor = 'pointer'; // Optional: change the cursor on hover to indicate it's clickable
+        nameHeader.style.cursor = 'pointer';
 
         nameHeader.addEventListener('click', () => {
             const isAscending = nameHeader.classList.toggle('ascending');
@@ -227,7 +269,7 @@ export class StylesUI {
             }
         });
     }
-    
+
     addStyleRow(clientId) {
         if (this.newStyleRowCount >= 10) {
             alert('Please add existing styles. Maximum of 10 new styles can be added at a time.');
@@ -448,6 +490,7 @@ export class StylesUI {
             });
         }
     }
+
 }
 
 console.log("stylesUIRender.js loaded!");
