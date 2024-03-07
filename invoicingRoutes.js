@@ -38,7 +38,6 @@ router.get("/api/styles/client/:clientId", (req, res) => {
         res.json(results);
     });
 });
-// the above two routers are reused from clients and styles respectively with the idea of keeping architectural integrity in the invoicing routes file 
 
 router.delete('/api/invoices/:id', (req, res) => {
     res.send('Got a DELETE request at /user')

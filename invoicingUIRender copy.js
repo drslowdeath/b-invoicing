@@ -1,12 +1,8 @@
 // invoicingUIRender.js
 import { InvoicingDataService } from './invoicingDataService.js';
-import { samLogoBase64 } from './imageData.js';
+
 // Used for discount application logic
 let invoicingUI; // Global
-function isValidBase64(base64String) {
-    const base64Pattern = /^data:image\/[a-z]+;base64,([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/;
-    return base64Pattern.test(base64String);
-}
 
 export class InvoicingUI {
     constructor(clientModalSelector, dropdownSelector, invoiceStylesTableSelector, selectedItemsTableSelector) {
@@ -659,115 +655,49 @@ class PDFGenerator {
         return doc;
     }
 
-    async addHeader(doc) {
-        await this.addLogo(doc);
+    addHeader(doc) {
+        this.addLogo(doc);
         this.addBusinessInfo(doc);
     }
-    
+
     addLogo(doc) {
-        return new Promise((resolve, reject) => {
-            if (isValidBase64(samLogoBase64)) {
-                const imgData = samLogoBase64.split(',')[1]; // Extract the base64-encoded data
-    
-                // Convert the base64-encoded data to a Blob
-                const blob = this.b64toBlob(imgData, 'image/png');
-    
-                new Compressor(blob, {
-                    quality: 0.8, // Adjust the quality as needed (0.8 = 80% quality)
-                    maxWidth: 500, // Adjust the maximum width as needed
-                    maxHeight: 800, // Adjust the maximum height as needed
-                    success(result) {
-                        const reader = new FileReader();
-                        reader.onloadend = function () {
-                            const compressedBase64 = reader.result;
-                            const compressedImgData = compressedBase64.split(',')[1];
-    
-                            // Add the compressed image to the PDF
-                            doc.addImage(compressedImgData, 'PNG', 10, 10, 50, 70 * 0.73); // Assuming an aspect ratio of 1010:737
-    
-                            resolve(); // Resolve the Promise when the image is added to the PDF
-                        };
-                        reader.readAsDataURL(result);
-                    },
-                    error(err) {
-                        console.error('Error compressing image:', err);
-                        reject(err); // Reject the Promise if there's an error during compression
-                    },
-                });
-            } else {
-                console.error('Invalid base64 string for the logo image.');
-                reject(); // Reject the Promise if the base64 string is invalid
-            }
-        });
+        const img = new Image();
+        img.src = 'logo.png'; // Replace with the path to your logo image file
+        img.onload = () => {
+            const imgWidth = 50; // Adjust the width as needed
+            const imgHeight = (img.height * imgWidth) / img.width; // Calculate height based on aspect ratio
+            doc.addImage(img, 'PNG', 10, 10, imgWidth, imgHeight);
+        };
     }
     
-    // Helper function to convert base64-encoded data to a Blob
-    b64toBlob(b64Data, contentType, sliceSize = 512) {
-        const byteCharacters = atob(b64Data);
-        const byteArrays = [];
-    
-        for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
-            const slice = byteCharacters.slice(offset, offset + sliceSize);
-    
-            const byteNumbers = new Array(slice.length);
-            for (let i = 0; i < slice.length; i++) {
-                byteNumbers[i] = slice.charCodeAt(i);
-            }
-    
-            const byteArray = new Uint8Array(byteNumbers);
-            byteArrays.push(byteArray);
-        }
-    
-        return new Blob(byteArrays, { type: contentType });
-    }
 
     addBusinessInfo(doc) {
-        const businessName = "S.A.M. Creations";
-        const address = "326 Lee High Road, SE13 5PJ, London";
-        const phoneNumber = "07935774269";
-        const email = "s.a.m.creations.yk@gmail.com";
-        const website = "https://samcreationsky.co.uk/";
-        const bankDetails = [
-            "Payment by:",
-            "Account Number: 20397709",
-            "Sort code: 20-45-45",
-            "Name: S.A.M. CREATIONS LTD",
-            "VAT Registration Number: 397121189"
-        ];
-    
-        // Set font size and color for the business name
-        doc.setFontSize(20);
-        doc.setTextColor("#B1202B");
-        doc.setFont(undefined, 'bold');
-    
-        // Business Name with line underneath
-        doc.text(businessName, doc.internal.pageSize.getWidth() - 10, 20, { align: 'right' });
-        doc.setDrawColor(0);
-        doc.line(140, 24, doc.internal.pageSize.getWidth() - 10, 24);
-    
-        // Reset font size, color, and style for the rest of the business info
-        doc.setFontSize(10);
-        doc.setTextColor(0);
-        doc.setFont(undefined, 'normal');
-    
-        // Business Address and Contact Information
-        doc.text(address, doc.internal.pageSize.getWidth() - 10, 35, { align: 'right' });
-        doc.text(`Tel: ${phoneNumber}`, doc.internal.pageSize.getWidth() - 10, 40, { align: 'right' });
-        doc.text(`Email: ${email}`, doc.internal.pageSize.getWidth() - 10, 45, { align: 'right' });
-        doc.text(`Web: ${website}`, doc.internal.pageSize.getWidth() - 10, 50, { align: 'right' });
-    
-        // Bank Details
-        const bankDetailsStartX = doc.internal.pageSize.getWidth() / 2;
-        let yPos = 25;
-        doc.text('Bank Details:', bankDetailsStartX, yPos, { align: 'center' });
-        yPos += 5;
-        bankDetails.forEach(detail => {
-            doc.text(detail, bankDetailsStartX, yPos, { align: 'center' });
-            yPos += 5;
-        });
-    
-        return 55; // Return a fixed Y position after the header for further content
-    }
+    const businessName = "S.A.M. Creations";
+    const address = "326 Lee High Road, SE13 5PJ, London";
+    const phoneNumber = "07935774269";
+    const email = "s.a.m.creations.yk@gmail.com";
+    const website = "https://samcreationsky.co.uk/";
+
+    // Set font for the business info
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'bold');
+
+    // Business Name with line underneath
+    doc.text(businessName, doc.internal.pageSize.getWidth() - 10, 20, { align: 'right' });
+    doc.setDrawColor(0);
+    doc.line(150, 22, doc.internal.pageSize.getWidth() - 10, 22);
+
+    // Reset font to normal
+    doc.setFont(undefined, 'normal');
+
+    // Business Address and Contact Information
+    doc.text(address, doc.internal.pageSize.getWidth() - 10, 30, { align: 'right' });
+    doc.text(`Tel: ${phoneNumber}`, doc.internal.pageSize.getWidth() - 10, 35, { align: 'right' });
+    doc.text(`Email: ${email}`, doc.internal.pageSize.getWidth() - 10, 40, { align: 'right' });
+    doc.text(`Web: ${website}`, doc.internal.pageSize.getWidth() - 10, 45, { align: 'right' });
+
+    return 50; // Return the Y position after the header for further content
+}
 
     addTermsAndConditions(doc, yPos) {
         doc.setFontSize(12);
@@ -793,6 +723,28 @@ class PDFGenerator {
         return yPos; // Return the updated yPos for further content
     }
 
+    addBankDetails(doc, yPos) {
+        yPos += 10; // Some space before the bank details
+        doc.setFontSize(12);
+        doc.text('Bank Details:', 10, yPos);
+        yPos += 6;
+
+        const bankDetails = [
+            "Payment by:",
+            "Account Number: 20397709",
+            "Sort code: 20-45-45",
+            "Name: S.A.M. CREATIONS LTD",
+            "VAT Registration Number: 397121189"
+        ];
+
+        bankDetails.forEach(detail => {
+            doc.text(detail, 10, yPos);
+            yPos = this.checkAndAddNewPage(yPos + 6, doc);
+        });
+
+        return yPos; // Return the updated yPos for any further content
+    }
+
     checkAndAddNewPage(yPos, doc) {
         if (yPos >= 280) { // A4 page height in mm
             doc.addPage();
@@ -801,19 +753,13 @@ class PDFGenerator {
         return yPos; // Return current Y position if no new page is added
     }
 
-    async generatePDF() {
+    generatePDF() {
         const doc = this.initializePDF();
         let yPos = 20;
 
-        await this.addHeader(doc);
-        yPos += 37; // Adjust position after the header
-        doc.setDrawColor('#B1202B'); // Set the line color to #B1202B hex
-        doc.setLineWidth(0.5); // Set the line width
-        doc.line(10, yPos, doc.internal.pageSize.getWidth() - 10, yPos); // Draw the line
-        yPos += 10; // Adjust position after the logo
-        
-        
-        
+        this.addHeader(doc);
+        yPos += 20; // Adjust position after the logo
+
         // Title
         doc.setFontSize(18);
         doc.text('Invoice Summary', 10, yPos);
@@ -872,6 +818,9 @@ class PDFGenerator {
         // Terms & Conditions
         yPos = this.addTermsAndConditions(doc, yPos);
 
+        // Bank Details
+        yPos = this.addBankDetails(doc, yPos);
+
         // Save PDF
         doc.save('invoice.pdf');
     }
@@ -892,9 +841,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log("Discount removed.");
     });
     
-    document.getElementById('generatePDFButton').addEventListener('click', async () => {
-        await invoicingUI.generatePDF();
-    });
+    document.getElementById('generatePDFButton').addEventListener('click', () => invoicingUI.generatePDF());
 
     document.getElementById('addSampleButtonn').addEventListener('click', () => {
         invoicingUI.sampleManager.addSampleRow();

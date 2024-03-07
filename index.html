@@ -8,8 +8,9 @@
         <script src="https://cdn.tailwindcss.com"></script>
         <!-- Alpine Plugins -->
         <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/focus@3.x.x/dist/cdn.min.js"></script>
+        
         <!-- JSPdf -->
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
         <!-- Main.js - Currently includes Alpine -->
         <script type="module" src="/main.js" defer></script>
         <!-- Font Awesome Icons -->
@@ -343,79 +344,60 @@
                                 </tbody>
                             </table>
                         </div>
-
+                        
                         <!-- Button for Adding Discounts -->
                         <div x-data="discountModal()" class="mt-4">
-                            <!-- Trigger Button -->
+                            <!-- Add Discount Modal Trigger Button -->
                             <button @click="openModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
                                 Add Discount
                             </button>
-                            <button id="addSampleButton" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mb-2 opacity-50 cursor-not-allowed" disabled title="Select a client first">
+                            <button id="addSampleButtonn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mb-2 opacity-50 cursor-not-allowed" disabled title="Select a client first">
                                 Add Sample
                             </button>
                             <button id="generatePDFButton" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 ml-2 rounded">
                                 Generate PDF
                             </button>
-
-                            <!-- Add Discount & Extras Modal -->
+                            <!-- Add Discount Modal -->
                             <div x-show="isOpen" class="fixed inset-0 bg-gray-800 bg-opacity-50 overflow-y-auto h-full w-full z-50" x-cloak>
                                 <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-gray-800">
-                                    <!-- Discounts -->
-                                    <div class="mt-3 text-center">
+                                    <div class="mt-3 text-center items-center">
                                         <h3 class="text-xl leading-6 font-medium text-white">Add Discount</h3>
-                                        <div class="mt-2">
-                                            <input type="number" x-model="discountValue" placeholder="Discount Value" id="discountValueInput" class="mb-4 w-full p-2 border rounded">
-                                            <select id="discountTypeSelect" class="mb-4 w-full p-2 border rounded">
-                                                <option value="flat">£ (Flat)</option>
-                                                <option value="percent">% (Percentage)</option>
-                                            </select>
-                                            <button @click="window.invoicingUI.handleApplyDiscount()" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
-                                                Apply
-                                            </button>
-                                            <button id="removeDiscountButton" class="bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-4 ml-2 rounded">
-                                                Remove
-                                            </button>
-                                        </div>
-                                        <!-- Extras -->
-                                        <div class="mt-3 text-center">
-                                            <h3 class="text-xl leading-6 font-medium text-white">Deposits & Extras</h3>
-                                            <div class="mt-2">
-                                                <input type="text" id="extraNoteInput" placeholder="Note" class="mb-4 w-full p-2 border rounded">
-                                                <input type="number" id="extraValueInput" placeholder="Extra Amount" class="mb-4 w-full p-2 border rounded">
-                                                <!--
-                                                    <select id="extraTypeSelect" class="mb-4 w-full p-2 border rounded">
-                                                    <option value="flat">£ (Flat)</option>
-                                                     
-                                                    REMOVING FOR NOW
-                                                    <option value="percent">% (Percentage)</option> 
-                                                    
-                                                    </select>
-                                                -->
-                                                <button @click="window.invoicingUI.handleApplyExtra()" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
-                                                    Apply
+                                        <div class="mt-4 text-left">
+                                            <!-- Discount Name -->
+                                            <input type="text" x-model="discountName" placeholder="Discount Name" class="mb-4 w-full p-2 border rounded" id="discountNameInput">
+                                            <!-- Discount Type Selection -->
+                                            <div class="mb-4 flex justify-center items-center">
+                                                <label class="inline-flex items-center">
+                                                    <input type="radio" x-model="discountType" value="percent" class="text-blue-600 form-radio" name="discountType">
+                                                    <span class="ml-2 text-white">% Percentage</span>
+                                                </label>
+                                                <label class="inline-flex items-center ml-6">
+                                                    <input type="radio" x-model="discountType" value="flat" class="text-blue-600 form-radio" name="discountType">
+                                                    <span class="ml-2 text-white">£ Flat</span>
+                                                </label>
+                                            </div>
+                                            <!-- Discount Value -->
+                                            <input type="number" x-model="discountValue" placeholder="Discount Value" class="mb-4 w-full p-2 border rounded" id="discountValueInput">
+                                            <div class="flex justify-between">
+                                                <!-- Apply Button -->
+                                                <button @click="applyDiscount()" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                                                    Apply Discount
                                                 </button>
-                                                <button id="removeLastExtraButton" class="bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-4 ml-2 rounded">
-                                                    Remove
+                                                <button id="removeDiscountButton" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
+                                                    Remove Discount
                                                 </button>
                                             </div>
-                                        </div>
-                                        <div class="mt-3">
-                                            <button @click="isOpen=false" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 ml-2 rounded">
-                                                Cancel
-                                            </button>
+                                            <div class="flex justify-center mt-4">
+                                                <!-- Close Modal Button -->
+                                                <button @click="closeModal()" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 ml-2 rounded">
+                                                    Cancel
+                                                </button>
+                                            </div>   
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="text-gray-900 font-semibold text-m mt-2">
-                        <p>
-                            4. When you swap screens reset the tables in invoicing 
-                        </p>
-                        <p>
-                            5. Add Extras in addition to discount. In there you have an extra input field which accepts texts. User enters discount, deposit etc. Then when PDF generate it displays with the text 
-                        </p>
                     </div>
                     <!-- Additional Invoicing Content Here -->
                 </div>
@@ -425,11 +407,9 @@
             function discountModal() {
                 return {
                     isOpen: false,
-                    discountType: 'flat',
+                    discountName: '',
+                    discountType: 'flat', // Default to 'flat'
                     discountValue: 0,
-                    extraNote: '',
-                    extraValue: 0,
-                    extraType: 'type',
                     openModal() {
                         this.isOpen = true;
                     },
@@ -437,12 +417,22 @@
                         this.isOpen = false;
                     },
                     applyDiscount() {
-                        // Logic to apply discount
-                        // Need to communicate the discount to the totalsTable component
-                        this.closeModal();
-                    },
-                    applyExtra() {
-                        this.closeModal();
+                        // Get the values from the modal
+                        const discountName = document.getElementById('discountNameInput').value;
+                        const discountType = document.querySelector('input[name="discountType"]:checked').value;
+                        const discountValue = document.getElementById('discountValueInput').value;
+
+                        // Log for debugging
+                        console.log(`Applying ${discountType} discount of ${discountValue} with name ${discountName}`);
+
+                        // Apply the discount via InvoiceManager
+                        invoicingUI.invoiceManager.addDiscount(discountName, discountType, discountValue);
+
+                        // Update the UI to reflect changes
+                        invoicingUI.updateTotalsUI();
+
+                        // Close the modal
+                        this.isOpen = false; // Assuming you have logic to reflect this change
                     }
                 };
             }
@@ -462,7 +452,8 @@
                 };
             }
             </script>
-            
+
+        <script src="https://unpkg.com/compressorjs@1.1.1/dist/compressor.min.js"></script>
     </body>
 </html>
 
