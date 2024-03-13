@@ -155,6 +155,20 @@ export class InvoicingUI {
             addSampleButton.removeAttribute('disabled');
             addSampleButton.removeAttribute('title');
             console.log(`Button loaded: ${addSampleButton}`);
+
+            // Logic to enable to Add Discount button 
+            const addDiscountButton = document.getElementById('invoicing-add-discount');
+            addDiscountButton.classList.remove('opacity-50', 'cursor-not-allowed');
+            addDiscountButton.removeAttribute('disabled');
+            addDiscountButton.removeAttribute('title');
+            console.log(`Button loaded: ${addDiscountButton}`);
+            
+            // Logic to enable the generate PDF button
+            const generatePDFButton = document.getElementById('generatePDFButton');
+            generatePDFButton.classList.remove('opacity-50', 'cursor-not-allowed');
+            generatePDFButton.removeAttribute('disabled');
+            generatePDFButton.removeAttribute('title');
+            console.log(`Button loaded: ${generatePDFButton}`);
     }         
 
     updateSelectedClientDisplay(selectedClientName) {
@@ -384,9 +398,11 @@ export class InvoicingUI {
     }
     
     // PDF generation HERE 
-    generatePDF() {
-        const pdfGenerator = new PDFGenerator(this.invoiceManager);
-        pdfGenerator.generatePDF();
+    async generatePDF() {
+        const { nextInvoiceNumber } = await this.invoicingDataService.fetchNextInvoiceNumber();
+        const pdfGenerator = new PDFGenerator(this.invoiceManager, this.invoicingDataService);
+        await pdfGenerator.generatePDF(nextInvoiceNumber, this.currentClientId);
+        await this.invoicingDataService.saveInvoice(nextInvoiceNumber);
     }
 }
 
@@ -464,66 +480,68 @@ class InvoiceManager {
     }
 
     //PDF GENERATION - This helps get a numeric price for % discounts and we subsequently get these in the generate pdf
-    calculateDiscountValues() {
-        // Start with the initial subtotal from items and samples
-        let runningSubtotal = [...this.items, ...this.samples].reduce((acc, curr) => acc + curr.totalPrice, 0);
-
-        // Temporarily store calculated values for percentage discounts
+    calculateDiscountValues(totalForCalculation) {
+        // Use the total for calculations, but do not reduce the actual total
         this.discounts = this.discounts.map(discount => {
             if (discount.type === 'percent') {
-                const value = runningSubtotal * (discount.value / 100);
-                // Apply the discount to the running subtotal for subsequent discounts
-                runningSubtotal -= value;
-                return { ...discount, calculatedValue: parseFloat(value.toFixed(2)) };
-            } else if (discount.type === 'flat') {
-                // For flat discounts, just subtract the value from the running subtotal
-                runningSubtotal -= discount.value;
-                return discount; // Return flat discounts as-is
+                // Calculate the display value for percentage-based discounts
+                const displayValue = totalForCalculation * (discount.value / 100);
+                return { ...discount, displayValue: parseFloat(displayValue.toFixed(2)) };
+            } else {
+                // Flat discounts show the value directly
+                return { ...discount, displayValue: parseFloat(discount.value.toFixed(2)) };
             }
-            return discount;
         });
     }
+    
     // TRY NOT TO TOUCH THIS I BARELY GOT IT TO WORK!
     recalculateTotals() {
-        // Start with the initial subtotal from items and samples
+        // Step 1: Calculate initial subtotal from items and samples
         let subtotal = [...this.items, ...this.samples].reduce((acc, curr) => acc + curr.totalPrice, 0);
     
-        // Apply each discount in the order they were added, regardless of type
-        this.discounts.forEach(discount => {
-            if (discount.type === 'percent') {
-                // Apply percentage discount on the current subtotal
-                subtotal -= subtotal * (discount.value / 100);
-            } else if (discount.type === 'flat') {
-                // Apply flat discount on the current subtotal
-                subtotal -= discount.value;
-            }
+        // Step 2: Apply flat discounts to the subtotal and recalculate VAT and total
+        const flatDiscounts = this.discounts.filter(discount => discount.type === 'flat');
+        let totalFlatDiscount = flatDiscounts.reduce((acc, curr) => acc + curr.value, 0);
+        subtotal -= totalFlatDiscount; // Subtract total flat discounts from the subtotal
+        
+        // Ensure subtotal doesn't go below 0
+        subtotal = Math.max(0, subtotal);
+    
+        let vat = subtotal * this.vatRate; // Recalculate VAT based on adjusted subtotal
+        let total = subtotal + vat; // Recalculate total
+    
+        // Step 3: Apply percentage-based discounts on the total for deposit calculation
+        // Note: These discounts do not reduce the total; they're for display purposes
+        const percentageDiscounts = this.discounts.filter(discount => discount.type === 'percent');
+        let effectiveTotal = total; // Start with the recalculated total
+        percentageDiscounts.forEach(discount => {
+            // Calculate the effective total after each percentage discount for deposit display
+            let discountAmount = effectiveTotal * (discount.value / 100);
+            discount.effectiveTotalAfterDiscount = effectiveTotal - discountAmount; // This is for display purposes
+            effectiveTotal -= discountAmount; // Adjust effective total for next discount, if any
         });
     
-        // Ensure subtotal does not go negative
-        subtotal = Math.max(subtotal, 0);
-    
-        // Calculate VAT and total based on the final subtotal
-        const vat = subtotal * this.vatRate;
-        const total = subtotal + vat;
-    
-        // Update instance variables with the calculated values
+        // Update instance variables with the recalculated values
         this.subtotal = subtotal;
         this.vat = vat;
-        this.total = total;
+        this.total = total; // Note: The actual total remains unchanged after percentage discounts
     
-        console.log(`Totals recalculated: Subtotal: £${this.subtotal.toFixed(2)}, VAT: £${this.vat.toFixed(2)}, Total: £${this.total.toFixed(2)}`);
-        this.calculateDiscountValues();
+        console.log(`Totals recalculated: Subtotal: £${this.subtotal.toFixed(2)}, VAT: £${this.vat.toFixed(2)}, Total (before percentage discounts): £${this.total.toFixed(2)}`);
     }
 
+    // Adjust getInvoiceSummary to include effective totals for discounts
     getInvoiceSummary() {
+        const formatValue = value => typeof value === 'number' ? value.toFixed(2) : '0.00';
+
         return {
-            subtotal: this.subtotal.toFixed(2),
-            vat: this.vat.toFixed(2),
-            total: this.total.toFixed(2),
-            discounts: this.discounts.map(discount => ({
+            subtotal: formatValue(this.subtotal),
+            vat: formatValue(this.vat),
+            total: formatValue(this.total),
+            discounts: this.discounts.map((discount, index) => ({
                 name: discount.name,
                 type: discount.type,
-                value: discount.value.toFixed(2)
+                value: formatValue(discount.value),
+                effectiveTotalAfterDiscount: formatValue(discount.effectiveTotalAfterDiscount)
             }))
         };
     }
@@ -553,7 +571,7 @@ class SampleManager {
             <td class="border p-2 whitespace-normal"><input type="number" class="price-per-hour-input border border-gray-300 p-2 rounded" placeholder="0" min="0"/></td>
             <td class="border p-2 whitespace-normal"><input type="number" class="hours-worked-input border border-gray-300 p-2 rounded" placeholder="0" min="0"/></td>
             <td class="sample-total-price p-2 border whitespace-normal">£0.00</td>
-            <td class="sample-actions"><button class="calculate-sample-price bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Calculate</button></td>
+            <td class="sample-actions"><button class="calculate-sample-price bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded submit-button">Calculate</button></td>
         `;
         row.querySelector('.calculate-sample-price').addEventListener('click', () => this.calculateSamplePrice(row));
     
@@ -683,7 +701,7 @@ class PDFGenerator {
                             const compressedImgData = compressedBase64.split(',')[1];
     
                             // Add the compressed image to the PDF
-                            doc.addImage(compressedImgData, 'PNG', 10, 10, 50, 70 * 0.73); // Assuming an aspect ratio of 1010:737
+                            doc.addImage(compressedImgData, 'PNG', 8, -1, 50, 75 * 0.73); // Assuming an aspect ratio of 1010:737
     
                             resolve(); // Resolve the Promise when the image is added to the PDF
                         };
@@ -722,13 +740,13 @@ class PDFGenerator {
     }
 
     addBusinessInfo(doc) {
-        const businessName = "S.A.M. Creations";
+        const businessName = "S.A.M. Creations LTD";
         const address = "326 Lee High Road, SE13 5PJ, London";
         const phoneNumber = "07935774269";
         const email = "s.a.m.creations.yk@gmail.com";
         const website = "https://samcreationsky.co.uk/";
         const bankDetails = [
-            "Payment by:",
+            "Bank: Barclays",
             "Account Number: 20397709",
             "Sort code: 20-45-45",
             "Name: S.A.M. CREATIONS LTD",
@@ -741,9 +759,9 @@ class PDFGenerator {
         doc.setFont(undefined, 'bold');
     
         // Business Name with line underneath
-        doc.text(businessName, doc.internal.pageSize.getWidth() - 10, 20, { align: 'right' });
+        doc.text(businessName, doc.internal.pageSize.getWidth() - 10, 15, { align: 'right' });
         doc.setDrawColor(0);
-        doc.line(140, 24, doc.internal.pageSize.getWidth() - 10, 24);
+        doc.line(140, 19, doc.internal.pageSize.getWidth() - 10, 19);
     
         // Reset font size, color, and style for the rest of the business info
         doc.setFontSize(10);
@@ -751,38 +769,40 @@ class PDFGenerator {
         doc.setFont(undefined, 'normal');
     
         // Business Address and Contact Information
-        doc.text(address, doc.internal.pageSize.getWidth() - 10, 35, { align: 'right' });
-        doc.text(`Tel: ${phoneNumber}`, doc.internal.pageSize.getWidth() - 10, 40, { align: 'right' });
-        doc.text(`Email: ${email}`, doc.internal.pageSize.getWidth() - 10, 45, { align: 'right' });
-        doc.text(`Web: ${website}`, doc.internal.pageSize.getWidth() - 10, 50, { align: 'right' });
-    
+        doc.text(address, doc.internal.pageSize.getWidth() - 10, 25, { align: 'right' });
+        doc.text(`Tel: ${phoneNumber}`, doc.internal.pageSize.getWidth() - 10, 30, { align: 'right' });
+        doc.text(`Email: ${email}`, doc.internal.pageSize.getWidth() - 10, 35, { align: 'right' });
+        doc.text(`Web: ${website}`, doc.internal.pageSize.getWidth() - 10, 40, { align: 'right' });
+            
         // Bank Details
         const bankDetailsStartX = doc.internal.pageSize.getWidth() / 2;
-        let yPos = 25;
-        doc.text('Bank Details:', bankDetailsStartX, yPos, { align: 'center' });
-        yPos += 5;
+        let yPos = 20;
+        
         bankDetails.forEach(detail => {
             doc.text(detail, bankDetailsStartX, yPos, { align: 'center' });
             yPos += 5;
         });
-    
-        return 55; // Return a fixed Y position after the header for further content
+
+        return 45; // Return a fixed Y position after the header for further content
     }
 
     addTermsAndConditions(doc, yPos) {
-        doc.setFontSize(12);
+        doc.setFontSize(10);
+        doc.setTextColor(0, 0, 0);
+        doc.setFont(undefined, 'bold');
         doc.text('Terms & Conditions:', 10, yPos);
+        doc.setFont(undefined, 'normal');
         yPos += 6;
 
         const terms = [
-            "Due payment time frame is one week.",
-            "Deposit of 50% is required of the beginning of production.",
-            "Late payment enforced fees (1% a day after 2 weeks)",
-            "If late on delivery the deadlines also change with the delivery delay of the materials.",
-            "If no payments are done legal action will be taken.",
-            "If customer is unsatisfied they can return goods for repair in 1 week.",
-            "Renegotiation after agreement is not acceptable by the company.",
-            "We do not take responsibility of goods damaged or lost during delivery"
+            "1. Payment Terms: Full payment is due within one week of invoice date.",
+            "   A 50% deposit is required at the start of production.",
+            "2. Late Payments: A 1% daily fee will be applied to outstanding balances after two weeks.",
+            "   Late deliveries will result in adjusted payment deadlines.",
+            "3. Non-Payment: Legal action will be pursued for non-payment.",
+            "4. Returns: Unsatisfactory goods must be returned for repair within one week of receipt.",
+            "5. Renegotiation: Post-agreement renegotiation is not accepted by the company.",
+            "6. Shipping: The company is not liable for goods damaged or lost during delivery."  
         ];
 
         terms.forEach(term => {
@@ -801,83 +821,282 @@ class PDFGenerator {
         return yPos; // Return current Y position if no new page is added
     }
 
-    async generatePDF() {
-        const doc = this.initializePDF();
-        let yPos = 20;
+    async fetchClientDetails(clientId) {
+        return await invoicingUI.invoicingDataService.fetchClientById(clientId);
+    }
 
+    async generatePDF(invoiceNumber, clientId) {
+        this.invoiceManager.calculateDiscountValues(this.invoiceManager.total);
+        const doc = this.initializePDF();
+        let yPos = 25;
+    
         await this.addHeader(doc);
-        yPos += 37; // Adjust position after the header
+        yPos += 22; // Adjust position after the header
         doc.setDrawColor('#B1202B'); // Set the line color to #B1202B hex
         doc.setLineWidth(0.5); // Set the line width
         doc.line(10, yPos, doc.internal.pageSize.getWidth() - 10, yPos); // Draw the line
         yPos += 10; // Adjust position after the logo
-        
-        
-        
-        // Title
-        doc.setFontSize(18);
-        doc.text('Invoice Summary', 10, yPos);
+    
+        // Fetch client details
+        const clientDetails = await this.fetchClientDetails(clientId);
+        const client = clientDetails[0];
+        const currentDate = new Date().toLocaleDateString('en-GB');
+    
+        // Client information
+        doc.setFontSize(12);
+        doc.setTextColor(0, 0, 0);
+        doc.setFont(undefined, 'bold');
+        doc.text('To:', 10, yPos);
+        yPos += 8;
+    
+        doc.setFont(undefined, 'normal');
+        doc.text(`Name: ${client.name}`, 10, yPos);
+        yPos += 6;
+        doc.text(`Company: ${client.company_name}`, 10, yPos);
+        yPos += 6;
+    
+        // Format the address with each part on a new line
+        doc.text('Address:', 10, yPos);
+        yPos += 6;
+        const addressParts = client.address.split(',').map(part => part.trim());
+        addressParts.forEach(part => {
+            doc.text(part, 20, yPos);
+            yPos += 6;
+        });
+    
+        // Invoice number and date
+        doc.setFontSize(12);
+        doc.setTextColor(0, 0, 0);
+        doc.text(`Invoice Number: ${invoiceNumber}`, 110, 55);
+        doc.text(`Date: ${currentDate}`, 110, 61);
         yPos += 10;
-
+    
         // Reset font size for body
         doc.setFontSize(12);
-
-        // Items
-        doc.text("Items:", 10, yPos);
-        yPos += 6;
-        this.invoiceManager.items.forEach(item => {
-            let itemText = `${item.name}: £${item.price.toFixed(2)} x ${item.quantity} = £${(item.price * item.quantity).toFixed(2)}`;
-            doc.text(itemText, 10, yPos);
-            yPos = this.checkAndAddNewPage(yPos + 6, doc);
-        });
-
-        // Samples
-        if (this.invoiceManager.samples.length > 0) {
-            doc.text("Samples:", 10, yPos);
-            yPos += 6;
-            this.invoiceManager.samples.forEach(sample => {
-                let sampleText = `${sample.name}: £${sample.pricePerHour.toFixed(2)} x ${sample.hoursWorked} hours = £${sample.totalPrice.toFixed(2)}`;
-                doc.text(sampleText, 10, yPos);
-                yPos = this.checkAndAddNewPage(yPos + 6, doc);
-            });
-        }
-
-        // Discounts
-        if (this.invoiceManager.discounts.length > 0) {
-            yPos += 5; // Some space before section
-            doc.text("Discounts:", 10, yPos);
-            yPos += 6; // Add space for section header
-            this.invoiceManager.discounts.forEach(discount => {
-                let discountText = discount.type === 'flat' ?
-                    `Discount (${discount.name}): £${discount.value}` :
-                    `Discount (${discount.name}): ${discount.value}% (£${discount.calculatedValue})`; // Use calculatedValue here
-                doc.text(discountText, 10, yPos);
-                yPos = this.checkAndAddNewPage(yPos + 6, doc);
-            });
-        }
-
-        // Subtotal, VAT, Total
-        yPos += 5;
-        let subtotalText = `Subtotal: £${this.invoiceManager.subtotal.toFixed(2)}`;
-        let vatText = `VAT: £${this.invoiceManager.vat.toFixed(2)}`;
-        let totalText = `Total: £${this.invoiceManager.total.toFixed(2)}`;
-        doc.text(subtotalText, 10, yPos);
-        yPos = this.checkAndAddNewPage(yPos + 10, doc);
-        doc.text(vatText, 10, yPos);
-        yPos = this.checkAndAddNewPage(yPos + 10, doc);
-        doc.text(totalText, 10, yPos);
-        // After Subtotal, VAT, and Total
-        yPos += 10; // Some space before the next section
-
+    
+        // Items Table
+        yPos = this.addTableHeader(doc, yPos, 'Items');
+        yPos = this.addItemsTable(doc, yPos);
+    
+        // Samples Table
+        yPos = this.addTableHeader(doc, yPos, 'Samples');
+        yPos = this.addSamplesTable(doc, yPos);
+    
+        // Totals Table
+        yPos = this.addTableHeader(doc, yPos, 'Totals');
+        yPos = this.addTotalsTable(doc, yPos);
+    
+        yPos += 10;
+    
         // Terms & Conditions
         yPos = this.addTermsAndConditions(doc, yPos);
-
-        // Save PDF
-        doc.save('invoice.pdf');
+    
+        // Generate the file name with the desired format
+        const fileName = `Invoice_${invoiceNumber}_${client.company_name}_${currentDate}.pdf`;
+    
+        // Save PDF with the generated file name
+        doc.save(fileName);
     }
 
-    
+    // Helper method to add a table header to the PDF
+    addTableHeader(doc, yPos, title) {
+        doc.setFontSize(14);
+        doc.setTextColor("#B1202B");
+        doc.setFont(undefined, 'bold');
+        doc.text(title, 10, yPos);
+        yPos += 5; // Adjust for space after the header
+        return yPos;
+    }
 
+    addItemsTable(doc, yPos) {
+        const tableData = [['Name', 'Quantity', 'Price']];
+    
+        this.invoiceManager.items.forEach(item => {
+            tableData.push([item.name, item.quantity.toString(), `£${item.price.toFixed(2)}`]);
+        });
+    
+        const tableHeaders = tableData.shift(); // Remove header row from data
+        const cellPadding = 5;
+        const cellWidth = (doc.internal.pageSize.getWidth() - 20) / tableHeaders.length;
+    
+        // Table headers
+        doc.setFillColor("#B1202B");
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(12); // Set font size for table headers
+        doc.setFont(undefined, 'bold'); // Set font style to bold for table headers
+        doc.rect(10, yPos, doc.internal.pageSize.getWidth() - 20, 10, 'F'); // Draw header row background
+        tableHeaders.forEach((header, index) => {
+            doc.text(header, 10 + index * cellWidth + cellPadding, yPos + 8);
+        });
+        yPos += 10;
+    
+        // Table rows
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(10); // Set font size for table rows
+        doc.setFont(undefined, 'normal'); // Reset font style for table rows
+        tableData.forEach((row, rowIndex) => {
+            row.forEach((cell, colIndex) => {
+                doc.setFillColor(rowIndex % 2 === 0 ? 255 : 240);
+                doc.rect(10 + colIndex * cellWidth, yPos, cellWidth, 8, 'F');
+                doc.text(cell.toString(), 10 + colIndex * cellWidth + cellPadding, yPos + 6);
+            });
+            yPos += 8;
+        });
+    
+        return yPos + 10; // Add some space after the table
+    }
+    
+    addSamplesTable(doc, yPos) {
+        if (this.invoiceManager.samples.length === 0) return yPos;
+    
+        const tableData = [['Name', 'Price/Hour', 'Hours Worked', 'Total Price']];
+    
+        this.invoiceManager.samples.forEach(sample => {
+            tableData.push([sample.name, `£${sample.pricePerHour.toFixed(2)}`, sample.hoursWorked.toString(), `£${sample.totalPrice.toFixed(2)}`]);
+        });
+    
+        const tableHeaders = tableData.shift(); // Remove header row from data
+        const cellPadding = 5;
+        const cellWidth = (doc.internal.pageSize.getWidth() - 20) / tableHeaders.length;
+    
+        // Table headers
+        doc.setFillColor("#B1202B");
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(12); // Set font size for table headers
+        doc.setFont(undefined, 'bold'); // Set font style to bold for table headers
+        doc.rect(10, yPos, doc.internal.pageSize.getWidth() - 20, 10, 'F'); // Draw header row background
+        tableHeaders.forEach((header, index) => {
+            doc.text(header, 10 + index * cellWidth + cellPadding, yPos + 8);
+        });
+        yPos += 10;
+    
+        // Table rows
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(10); // Set font size for table rows
+        doc.setFont(undefined, 'normal'); // Reset font style for table rows
+        tableData.forEach((row, rowIndex) => {
+            row.forEach((cell, colIndex) => {
+                doc.setFillColor(rowIndex % 2 === 0 ? 255 : 240);
+                doc.rect(10 + colIndex * cellWidth, yPos, cellWidth, 8, 'F');
+                doc.text(cell.toString(), 10 + colIndex * cellWidth + cellPadding, yPos + 6);
+            });
+            yPos += 8;
+        });
+    
+        return yPos + 10; // Add some space after the table
+    }
+
+    addDiscountsTable(doc, yPos) {
+        const { flatDiscounts, percentageDiscounts } = this.invoiceManager.discounts.reduce((acc, discount) => {
+            if (discount.type === 'flat') {
+                acc.flatDiscounts.push(discount);
+            } else if (discount.type === 'percent') {
+                acc.percentageDiscounts.push(discount);
+            }
+            return acc;
+        }, { flatDiscounts: [], percentageDiscounts: [] });
+
+        // Flat Discounts
+        if (flatDiscounts.length > 0) {
+            yPos = this.addTableHeader(doc, yPos, 'Flat Discounts');
+            flatDiscounts.forEach((discount, index) => {
+                const description = `${discount.name}: £${discount.value.toFixed(2)}`;
+                yPos = this.addDiscountRow(doc, yPos, description);
+            });
+        }
+
+        // Percentage Discounts as Deposits
+        if (percentageDiscounts.length > 0) {
+            yPos += 5; // Space before percentage discounts section
+            yPos = this.addTableHeader(doc, yPos, 'Deposits');
+            percentageDiscounts.forEach((discount) => {
+                // Ensure displayValue exists; otherwise, set a default or handle appropriately
+                const displayValue = discount.displayValue !== undefined ? discount.displayValue.toFixed(2) : 'N/A';
+                const description = `${discount.name}: ${discount.value}% (Equivalent: £${displayValue})`;
+                yPos = this.addDiscountRow(doc, yPos, description);
+            });
+        }
+
+        return yPos;
+    }
+
+    addDiscountRow(doc, yPos, text) {
+        doc.setFontSize(10);
+        doc.text(text, 10, yPos);
+        return yPos + 5; // Increase yPos for next content
+    }
+
+    // Helper method to add a text row to the PDF for discounts, adjusted for alignment
+    addTextRow(doc, yPos, leftText, rightText) {
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const leftMargin = 10;
+        const rightTextIndent = 60; // Adjust this to control where the right text starts
+
+        doc.setFontSize(10);
+        // Print the left text (description)
+        doc.text(leftText, leftMargin, yPos);
+        
+        // Calculate the position for the right text (amount) based on the page width and a fixed indent
+        const rightTextPosition = pageWidth - rightTextIndent; // Calculate the x position for the right text
+        
+        // Print the right text slightly indented from the calculated position to simulate "tabbing"
+        doc.text(rightText, rightTextPosition, yPos, { align: "left" });
+        return yPos + 5; // Increase yPos for next content
+    }
+
+
+    addTotalsTable(doc, yPos) {
+        const tableData = [
+            ['Subtotal', `£${this.invoiceManager.subtotal.toFixed(2)}`],
+            ['VAT', `£${this.invoiceManager.vat.toFixed(2)}`],
+        ];
+    
+        // Add flat discounts to the table data
+        this.invoiceManager.discounts
+            .filter(discount => discount.type === 'flat')
+            .forEach(discount => {
+                tableData.push([`${discount.name}`, `£${discount.value.toFixed(2)}`]);
+            });
+    
+        // Add percentage discounts (deposits) to the table data
+        this.invoiceManager.discounts
+            .filter(discount => discount.type === 'percent')
+            .forEach(discount => {
+                const displayValue = discount.displayValue !== undefined ? discount.displayValue.toFixed(2) : 'N/A';
+                tableData.push([`${discount.name} (${discount.value}%)`, `£${displayValue}`]);
+            });
+    
+        tableData.push(['Total', `£${this.invoiceManager.total.toFixed(2)}`]);
+    
+        const cellPadding = 5;
+        const cellWidth = (doc.internal.pageSize.getWidth() - 20) / 2;
+    
+        // Table headers
+        doc.setFillColor("#B1202B");
+        doc.setTextColor(255, 255, 255);
+        doc.rect(10, yPos, doc.internal.pageSize.getWidth() - 20, 10, 'F');
+        doc.setFont(undefined, 'bold');
+        doc.text('Description', 10 + cellPadding, yPos + 8);
+        doc.text('Amount', 10 + cellWidth + cellPadding, yPos + 8);
+        yPos += 10;
+    
+        // Table rows
+        doc.setFont(undefined, 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(0, 0, 0);
+        tableData.forEach((row, rowIndex) => {
+            doc.setFillColor("#FFFFFF");
+            doc.rect(10, yPos, cellWidth, 8, 'F');
+            doc.text(row[0], 10 + cellPadding, yPos + 6);
+            doc.setFillColor("#FFFFFF");
+            doc.rect(10 + cellWidth, yPos, cellWidth, 8, 'F');
+            doc.text(row[1], 10 + cellWidth + cellPadding, yPos + 6);
+            yPos += 8;
+        });
+    
+        return yPos + 10;
+    }
+    
     
 }
 

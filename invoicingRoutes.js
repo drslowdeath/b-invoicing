@@ -25,6 +25,22 @@ router.get("/api/clients", (req, res) => {
         res.json(results);
     });
 });
+// Fetch a client information by their ID
+router.get("/api/clients/:id", (req, res) => {
+    //MySQL query to fetch a client by ID
+    const clientId = req.params.id;
+    db.query(
+      "SELECT * FROM clients WHERE id = ?",
+      [clientId],
+      (error, results) => {
+        if (error) {
+          // handle error
+          return res.status(500).send(error);
+        }
+        res.json(results);
+      },
+    );
+});
 
 // Fetch styles for a specific client
 router.get("/api/styles/client/:clientId", (req, res) => {
@@ -172,13 +188,27 @@ router.get("/api/getNextInvoiceNumber", async (req, res) => {
                 console.error("Error fetching the max invoice number:", error);
                 return res.status(500).send({ error: "Error fetching the max invoice number" });
             }
-            const nextInvoiceNumber = results[0].maxInvoiceNumber + 1;
+            const maxInvoiceNumber = results[0].maxInvoiceNumber;
+            const nextInvoiceNumber = maxInvoiceNumber ? `SAM${parseInt(maxInvoiceNumber.slice(3)) + 1}` : 'SAM1';
             res.json({ nextInvoiceNumber });
         });
     } catch (error) {
         console.error("Server error:", error);
         res.status(500).send({ error: "Internal Server Error" });
     }
+});
+
+// Saving the invoice number 
+router.post("/api/saveInvoice", (req, res) => {
+    const { invoiceNumber } = req.body;
+    const query = "INSERT INTO invoices (invoice_number) VALUES (?)";
+    db.query(query, [invoiceNumber], (error, results) => {
+        if (error) {
+            console.error("Error saving the invoice:", error);
+            return res.status(500).send({ error: "Error saving the invoice" });
+        }
+        res.json({ message: "Invoice saved successfully" });
+    });
 });
 
 // Getting the invoice status

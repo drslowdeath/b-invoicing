@@ -65,7 +65,7 @@
                         </div>
                         <!-- Add Client Button - To Open Modal-->
                         <div class="flex justify-end mt-5 mb-3">
-                            <button @click="showAddClientModal = true" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                            <button @click="showAddClientModal = true" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded submit-button">
                                 <i class="fas fa-plus-circle"></i> Add Client
                             </button>
                         </div>
@@ -101,10 +101,10 @@
                                         <input name="company_name" type="text" placeholder="Company Name" class="w-full mb-2 p-2 rounded bg-white text-gray-700" required></input>
                                         <input name="address" type="text" placeholder="Address" class="w-full mb-2 p-2 rounded bg-white text-gray-700" required></input>
                                         <input name="email" type="email" placeholder="Email" class="w-full mb-2 p-2 rounded bg-white text-gray-700" required></input>
-                                        <button type="submit" id="submitAddClientForm" class="w-full bg-blue-500 text-white text-base font-medium p-2 rounded hover:bg-blue-600">Add Client</button>
+                                        <button type="submit" id="submitAddClientForm" class="w-full bg-blue-500 text-white text-base font-medium p-2 rounded hover:bg-blue-600 submit-button">Add Client</button>
                                     </form>
                                     <div class="items-center mt-2">
-                                        <button @click="showAddClientModal = false" class="px-4 py-2 bg-red-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors duration-200">
+                                        <button @click="showAddClientModal = false" class="px-4 py-2 bg-red-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors duration-200 submit-button">
                                             Close
                                         </button>
                                     </div>
@@ -124,7 +124,7 @@
                         </div>
                         <!-- Trigger Button for Client Modal -->
                         <div class="flex justify-between items-center">
-                            <button @click="showClientModal = true" class="open-modal-button flex bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-2">
+                            <button @click="showClientModal = true" class="open-modal-button flex bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-2 submit-button">
                                 Open Clients Modal
                             </button>
                             <div id="selectedClientName">
@@ -163,7 +163,7 @@
                                 </div>
                                 <!-- Close Modal Button -->
                                 <div class="flex justify-center items-center">
-                                    <button @click="showClientModal = false" class="close-modal-button px-4 py-2 bg-red-500 text-white text-base font-medium rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors duration-200">
+                                    <button @click="showClientModal = false" class="close-modal-button px-4 py-2 bg-red-500 text-white text-base font-medium rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors duration-200 submit-button">
                                         Close
                                     </button>
                                 </div>
@@ -190,7 +190,7 @@
                     </div>
                     <button 
                         id="addStyle" 
-                        class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mb-2 opacity-50 cursor-not-allowed mt-2" title="Select a client first" disabled>
+                        class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mb-2 opacity-50 cursor-not-allowed mt-2 submit-button" title="Select a client first" disabled>
                         Add Style
                     </button>
                 </div>
@@ -204,7 +204,7 @@
                         </div>
                         <!-- Trigger Button for Client Modal in Invoices Tab -->
                         <div class="flex justify-between items-center">
-                            <button @click="showInvoiceClientModal = true" class="open-invoice-modal-button flex bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-2">
+                            <button @click="showInvoiceClientModal = true" class="open-invoice-modal-button flex bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-2 submit-button">
                                 Select Client for Invoicing
                             </button>
                             <div id="selectedInvoiceClientName">
@@ -247,7 +247,7 @@
                                 </div>
                                 <!-- Close Modal Button -->
                                 <div class="flex justify-center items-center">
-                                    <button @click="showInvoiceClientModal = false" class="close-invoice-modal-button px-4 py-2 bg-red-500 text-white text-base font-medium rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors duration-200">
+                                    <button @click="showInvoiceClientModal = false" class="close-invoice-modal-button px-4 py-2 bg-red-500 text-white text-base font-medium rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors duration-200 submit-button">
                                         Close
                                     </button>
                                 </div>
@@ -348,13 +348,13 @@
                         <!-- Button for Adding Discounts -->
                         <div x-data="discountModal()" class="mt-4">
                             <!-- Add Discount Modal Trigger Button -->
-                            <button @click="openModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                            <button id="invoicing-add-discount"@click="openModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded submit-button opacity-50 cursor-not-allowed" disabled title="Select a client first">
                                 Add Discount
                             </button>
-                            <button id="addSampleButtonn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mb-2 opacity-50 cursor-not-allowed" disabled title="Select a client first">
+                            <button id="addSampleButtonn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mb-2 submit-button opacity-50 cursor-not-allowed" disabled title="Select a client first">
                                 Add Sample
                             </button>
-                            <button id="generatePDFButton" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 ml-2 rounded">
+                            <button id="generatePDFButton" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 ml-2 rounded submit-button opacity-50 cursor-not-allowed" disable title="Select a client first">
                                 Generate PDF
                             </button>
                             <!-- Add Discount Modal -->
@@ -380,16 +380,16 @@
                                             <input type="number" x-model="discountValue" placeholder="Discount Value" class="mb-4 w-full p-2 border rounded" id="discountValueInput">
                                             <div class="flex justify-between">
                                                 <!-- Apply Button -->
-                                                <button @click="applyDiscount()" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                                                <button @click="applyDiscount()" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded submit-button">
                                                     Apply Discount
                                                 </button>
-                                                <button id="removeDiscountButton" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
+                                                <button id="removeDiscountButton" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded submit-button">
                                                     Remove Discount
                                                 </button>
                                             </div>
                                             <div class="flex justify-center mt-4">
                                                 <!-- Close Modal Button -->
-                                                <button @click="closeModal()" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 ml-2 rounded">
+                                                <button @click="closeModal()" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 ml-2 rounded submit-button">
                                                     Cancel
                                                 </button>
                                             </div>   
@@ -417,23 +417,21 @@
                         this.isOpen = false;
                     },
                     applyDiscount() {
-                        // Get the values from the modal
-                        const discountName = document.getElementById('discountNameInput').value;
-                        const discountType = document.querySelector('input[name="discountType"]:checked').value;
-                        const discountValue = document.getElementById('discountValueInput').value;
+    const discountName = this.discountName.trim();
+    const discountType = this.discountType; // 'percent' or 'flat'
+    let discountValue = parseFloat(this.discountValue);
 
-                        // Log for debugging
-                        console.log(`Applying ${discountType} discount of ${discountValue} with name ${discountName}`);
+    if (isNaN(discountValue)) {
+        alert("Please enter a valid discount value.");
+        return;
+    }
 
-                        // Apply the discount via InvoiceManager
-                        invoicingUI.invoiceManager.addDiscount(discountName, discountType, discountValue);
+    invoicingUI.invoiceManager.addDiscount(discountName, discountType, discountValue);
+    invoicingUI.updateTotalsUI();
 
-                        // Update the UI to reflect changes
-                        invoicingUI.updateTotalsUI();
+    this.closeModal();
+}
 
-                        // Close the modal
-                        this.isOpen = false; // Assuming you have logic to reflect this change
-                    }
                 };
             }
             
